@@ -16,113 +16,54 @@ Built with **Tauri 2.0 + React 18 + TypeScript + Rust** for native performance o
 ### 🚀 One-Click Setup Wizard
 Skip the terminal entirely. The built-in setup wizard automatically detects your environment, installs Node.js and OpenClaw, and initializes everything — all from the GUI.
 
-**How to Use:**
-1.  Launch OpenClaw Manager.
-2.  If prerequisites are missing, the **Setup Wizard** will appear.
-3.  Click **Install Prerequisites** to automatically install Node.js (via NVM) and Git.
-4.  Click **Install OpenClaw** to clone and set up the core framework.
-5.  Follow the guided steps until the dashboard appears.
-
 ### 📊 Dashboard & Service Control
 Real-time monitoring and full lifecycle management of the OpenClaw service.
+- **Service Status:** Port, PID, memory usage, uptime.
+- **Service Supervisor**: Automatically revives the gateway when it is restarted via Telegram command or recovers from unexpected failures.
+- **Log Viewer**: Structured local application logs. Filter by warnings, errors, and easily export.
+- **Web Control UI**: Direct chat interface with your agents (`http://localhost:{GATEWAY_PORT}`).
 
-**Features:**
-- Live service status (port, PID, memory usage, uptime)
-- **Start / Stop / Restart / Kill All** actions
-- Real-time log viewer with auto-refresh
-- **Web Control UI**: Direct chat interface with your agents (served at `http://localhost:18789`)
-
-**How to Use:**
-- **Start Service:** Click the **Start** button in the dashboard top-right corner.
-- **View Logs:** Check the "Live Logs" card for immediate output or go to the **Logs** tab for history.
-- **Control UI:** Once the service is running, open `http://localhost:18789` to chat with your agents directly.
-- **System Check:** Use the "System Requirements" card to verify your environment health.
-
-### 🤖 AI Model Configuration
-Flexible multi-provider AI configuration. Connect to the most powerful models or run local LLMs.
+### 🤖 Comprehensive AI Configuration
+Flexible multi-provider AI connection with seamless **Ollama** integration.
 
 **Supported Providers:**
 - **Google Gemini** (New! ✨): Gemini 3 Pro, Gemini 3 Flash
 - **Anthropic**: Claude 3.5 Sonnet, Opus
 - **OpenAI**: GPT-4o, GPT-4o-mini
-- **DeepSeek**: DeepSeek V3, R1
-- **Moonshot, Z.AI (GLM), Qwen, MiniMax, Venice, OpenRouter**
-- **Ollama**: Local model support
-- **Custom**: Connect to any OpenAI-compatible endpoint
+- **DeepSeek**: DeepSeek V3 (Chat), DeepSeek R1 (Reasoner)
+- **Local Models (Ollama)**: Auto-detect Ollama installation. Search, pull, and manage local models (e.g., `llama3`, `qwen3.5:9b`) directly from the GUI.
+- **Custom Provider Profile**: Add any OpenAI or Anthropic API-compatible endpoints and set your specific models.
 
-**How to Use:**
-1.  Go to **Settings > AI Config**.
-2.  Click **Add AI Provider**.
-3.  Select a provider (e.g., **Google Gemini**) or choose **Custom**.
-4.  Enter your API Key (optional for Ollama).
-5.  Select your preferred models (recommended models are pre-selected).
-6.  Click **Save**.
-7.  (Optional) Set a model as **Primary** to be used as the default for all agents.
+### ⚙️ Advanced Settings & Tuning
+Granular configuration over your entire OpenClaw ecosystem directly via the GUI.
+
+- **Compaction & Memory Optimization**: Map tokens before compaction triggers, manage context pruning, limit message retention, and map offline local embeddings using Ollama.
+- **Subagent Global Defaults**: Manage complex agent nesting limits. Define the max spawn depth, max children per agent, and limit concurrent subagent processing.
+- **Tools & Security Profiles**: Set strict guardrails across your instances (Messaging, Minimal, Coding, Full Access). 
+- **Native PDF Support**: Configure strict limits specifying maximum token pages and payload size (MB) for attached complex document processing.
+- **Inline File Attachments**: Enable/Disable subagents analyzing dropped standard session attachment drops and define the max byte threshold per session.
+- **Browser Control & Web Search**: Empower agents to explore the web by integrating your own Brave Search API keys and customize the internal agent Browser window UI Chrome colors.
+- **Network Customization**: Easily adjust the Gateway Port dynamically (e.g., standard `3000`) and the global debug Log Level (e.g., debug, info, warn).
+- **Workspace Localization**: Configure local timezones and preferred time format (e.g., 12h AM/PM vs 24h).
+
+### 📋 Configuration Management
+Never lose an `.openclaw.json` or model setup profile again!
+- Validated GUI configurations directly synced to your `.openclaw.json`.
+- Provide schema validation right from the interface.
+- Import, Export, Backup, and Restore your entire setup locally using JSON.
 
 ### 🧩 MCP Management
-Full [Model Context Protocol](https://modelcontextprotocol.io/) server management with integrated **mcporter** support.
-
-**How to Use:**
-1.  Go to the **MCP** tab.
-2.  Click **Add MCP Server**.
-3.  Choose **Stdio** (local command) or **SSE** (remote URL).
-4.  Enter the command/URL and arguments.
-5.  Toggle the switch to **Enable**.
-6.  Changes are automatically synced to `~/.mcporter/mcporter.json` for OpenClaw to use.
+Full [Model Context Protocol](https://modelcontextprotocol.io/) server management with integrated **mcporter** support. Set up simple StdIo local commands or remote SSE hooks dynamically. Changes automatically sink to your local `~/.mcporter/mcporter.json`.
 
 ### 📚 Skills Management
-Browse, install, and manage OpenClaw skills via **ClawHub**.
-
-**How to Use:**
-1.  Go to the **Skills** tab.
-2.  Browse the registry for available skills (e.g., specialized coding, research, or creative writing skills).
-3.  Click **Install** on a skill card to add it to your OpenClaw instance.
-4.  Installed skills are immediately available to your agents.
+Browse, install, and manage OpenClaw capabilities explicitly shipped via **ClawHub** (e.g., specialized coding, web development). 
 
 ### 📱 Message Channels
-Connect OpenClaw to multiple messaging platforms for omnichannel AI.
+Connect OpenClaw to multiple omnichannel chat platforms.
+**Supported Channels:** Telegram, Feishu, Discord, Slack, WhatsApp. Complete configurations requiring tokens, secret hashes, IDs, authorized groups/users, direct from the interface to be bound instantly to the Gateway.
 
-**Supported Channels:**
-- **Telegram**, **Feishu**, **Discord**, **Slack**, **WhatsApp**, + more via plugins.
-
-**How to Use (Telegram Example):**
-1.  Go to **Settings > Channels**.
-2.  Select **Telegram**.
-3.  Enter your **Bot Token** (from BotFather).
-4.  Configure **Allowed Groups** and **Allowed Users** for security.
-5.  Enable the channel and click **Save**.
-
-### 🤖 Multi-Agent Routing
-Run multiple specialized AI agents with intelligent message routing and nested subagent orchestration.
-
-**Features:**
-- **Agent Creation**: Create specialized agents (e.g., Coder, Researcher).
-- **Subagents**: Nest agents to create complex workflows.
-- **Personality Editor**: Edit `SOUL.md` directly in the app.
-
-**How to Use:**
-1.  Go to **Settings > Agents**.
-2.  Click **Create Agent**.
-3.  Choose a template or start from blank.
-4.  Define the agent's **Personality** in the built-in editor.
-5.  Configure **Subagents** if this agent needs to delegate tasks.
-6.  Use the **Routing Test** tool to verify which agent handles specific user queries.
-
-### 📋 Application Logs
-Built-in structured log viewer.
-
-**How to Use:**
-1.  Go to the **Logs** tab.
-2.  Use the filters to show only **Error** or **Warning** logs.
-3.  Click on a log entry to expand details.
-4.  Use **Export Logs** to save them for troubleshooting/reporting issues.
-
-### 🔄 Auto-Update
-Automatic update detection for OpenClaw.
-
-**How to Use:**
-- When a new version is available, a banner will appear at the top of the app.
-- Click **Update Now** to automatically download and install the latest version.
+### 🔄 OpenClaw Manager Self-Update
+Get automatic Over-The-Air (OTA) updates right inside the app settings! When a new version is built, be notified, pull the latest, and securely relaunch with newly built features—no manual reinstalling required!
 
 ---
 
@@ -203,19 +144,6 @@ Output in `src-tauri/target/release/bundle/`:
 
 ---
 
----
-
-## 🆕 Changelog
-
-### v0.0.13
-- **Fixed Service Stop**: The "Stop" button now reliably terminates the OpenClaw process (including force kill fallback), preventing zombie processes and Bonjour naming conflicts.
-- **Fixed Service Restart**: The "Restart" button now utilizes the robust stop logic to ensure clean restarts.
-- **Fixed Telegram `/restart`**: Implemented a **Service Supervisor** that automatically revives the gateway when it is restarted via Telegram command.
-- **Fixed Supervisor Crash**: Resolved an `EBADF` crash on Windows by detaching stdio for the supervised background process.
-- **Config Cleanup**: Removed invalid keys (`timezone`, `logLevel`) from `openclaw.json` to pass doctor checks.
-
----
-
 ## 🤝 Contributing
 
 1. Fork the project
@@ -233,4 +161,3 @@ MIT License — See [LICENSE](LICENSE) for details.
 ---
 
 **Made with ❤️ by the OpenClaw Community**
- 
