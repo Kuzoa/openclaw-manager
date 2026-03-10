@@ -237,7 +237,43 @@ pub fn spawn_background(script: &str) -> io::Result<()> {
 
 /// Get openclaw executable path
 /// Detects multiple possible installation paths, since GUI apps don't inherit user shell's PATH
+///
+/// Detection phases:
+/// Phase 1: npm config get prefix (most reliable for custom npm paths)
+/// Phase 2: Hardcoded paths (nvm/volta/pnpm/asdf/mise/yarn...)
+/// Phase 3: PATH check + Shell fallback
 pub fn get_openclaw_path() -> Option<String> {
+    // ========== Phase 1: npm config get prefix (NEW) ==========
+    // This is the most reliable method to detect custom npm global installation paths
+    info!("[Shell] Phase 1: Querying npm global prefix...");
+    
+    let npm_prefix_result = if platform::is_windows() {
+        run_cmd_output("npm config get prefix")
+    } else {
+        run_bash_output("npm config get prefix 2>/dev/null")
+    };
+    
+    if let Ok(prefix) = npm_prefix_result {
+        let prefix = prefix.trim();
+        info!("[Shell] npm prefix result: '{}'", prefix);
+        if !prefix.is_empty() {
+            let openclaw_path = if platform::is_windows() {
+                format!("{}\\openclaw.cmd", prefix)
+            } else {
+                format!("{}/bin/openclaw", prefix)
+            };
+            
+            info!("[Shell] Checking path: {}", openclaw_path);
+            if std::path::Path::new(&openclaw_path).exists() {
+                info!("[Shell] Found openclaw via npm prefix: {}", openclaw_path);
+                return Some(openclaw_path);
+            }
+        }
+    }
+    
+    // ========== Phase 2: Hardcoded paths (PRESERVED) ==========
+    info!("[Shell] Phase 2: Checking hardcoded paths...");
+    
     // Windows: check common npm global installation paths
     if platform::is_windows() {
         let possible_paths = get_windows_openclaw_paths();
