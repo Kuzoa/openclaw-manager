@@ -28,3 +28,44 @@ npm-debug.log*
 # Tauri
 src-tauri/target/
 src-tauri/Cargo.lock
+
+# AI Tools
+.adal/
+.agents/
+.agent/
+.augment/rules/
+.claude/
+.cline/
+.codeartsdoer/
+.codebuddy/
+.codex/
+.commandcode/
+.continue/
+.crush/
+.cursor/
+.factory/
+.gemini/
+.github/
+.goose/
+.junie/
+.iflow/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.vibe/
+.mux/
+.opencode/
+.openhands/
+.pi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
+.neovate/
+.pochi/
+
+# Doc
+openspec/
