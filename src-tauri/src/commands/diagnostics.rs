@@ -1,20 +1,20 @@
 use crate::models::{AITestResult, ChannelTestResult, DiagnosticResult, SystemInfo};
 use crate::utils::{log_sanitizer, platform, shell};
+use log::{debug, info, warn};
 use tauri::command;
-use log::{info, warn, debug};
 
 /// Strip ANSI escape sequences (color codes, etc.)
 fn strip_ansi_codes(input: &str) -> String {
     // Match ANSI escape sequences: ESC[ ... m or ESC[ ... other control characters
     let mut result = String::with_capacity(input.len());
     let mut chars = input.chars().peekable();
-    
+
     while let Some(c) = chars.next() {
         if c == '\x1b' {
             // Skip ESC[...m sequence
             if chars.peek() == Some(&'[') {
                 chars.next(); // Skip '['
-                // Skip until alphabetic character
+                              // Skip until alphabetic character
                 while let Some(&next) = chars.peek() {
                     chars.next();
                     if next.is_ascii_alphabetic() {
@@ -51,13 +51,17 @@ fn extract_json_from_output(output: &str) -> Option<String> {
         // Check if it's a real JSON array (starts with [" or [digit or [{)
         if trimmed.starts_with('[') && trimmed.len() > 1 {
             let second_char = trimmed.chars().nth(1).unwrap_or(' ');
-            if second_char == '"' || second_char == '{' || second_char == '[' || second_char.is_ascii_digit() {
+            if second_char == '"'
+                || second_char == '{'
+                || second_char == '['
+                || second_char.is_ascii_digit()
+            {
                 json_start_line = Some(i);
                 break;
             }
         }
     }
-    
+
     // Find JSON end line (line ending with } or ], search from the end)
     for (i, line) in lines.iter().enumerate().rev() {
         let trimmed = line.trim();
@@ -70,7 +74,7 @@ fn extract_json_from_output(output: &str) -> Option<String> {
             break;
         }
     }
-    
+
     match (json_start_line, json_end_line) {
         (Some(start), Some(end)) if start <= end => {
             let json_lines: Vec<&str> = lines[start..=end].to_vec();
@@ -90,7 +94,10 @@ pub async fn run_doctor() -> Result<Vec<DiagnosticResult>, String> {
     // Check if OpenClaw is installed
     info!("[Diagnostics] Checking OpenClaw installation status...");
     let openclaw_installed = shell::get_openclaw_path().is_some();
-    info!("[Diagnostics] OpenClaw installed: {}", if openclaw_installed { "✓" } else { "✗" });
+    info!(
+        "[Diagnostics] OpenClaw installed: {}",
+        if openclaw_installed { "✓" } else { "✗" }
+    );
     results.push(DiagnosticResult {
         name: "OpenClaw Installation".to_string(),
         passed: openclaw_installed,
@@ -167,7 +174,7 @@ pub async fn run_doctor() -> Result<Vec<DiagnosticResult>, String> {
             suggestion: None,
         });
     }
-    
+
     Ok(results)
 }
 
@@ -181,10 +188,20 @@ pub async fn test_ai_connection() -> Result<AITestResult, String> {
 
     // Use openclaw command to test connection
     info!("[AI Test] Executing: openclaw agent --local --to +1234567890 --message \"Reply OK\"");
-    let result = shell::run_openclaw(&["agent", "--local", "--to", "+1234567890", "--message", "Reply OK"]);
+    let result = shell::run_openclaw(&[
+        "agent",
+        "--local",
+        "--to",
+        "+1234567890",
+        "--message",
+        "Reply OK",
+    ]);
 
     let latency = start.elapsed().as_millis() as u64;
-    info!("[AI Test] Command execution completed, latency: {}ms", latency);
+    info!(
+        "[AI Test] Command execution completed, latency: {}ms",
+        latency
+    );
 
     match result {
         Ok(output) => {
@@ -195,22 +212,29 @@ pub async fn test_ai_connection() -> Result<AITestResult, String> {
                 .filter(|l: &&str| !l.contains("ExperimentalWarning"))
                 .collect::<Vec<&str>>()
                 .join("\n");
-            
+
             let success = !filtered.to_lowercase().contains("error")
                 && !filtered.contains("401")
                 && !filtered.contains("403");
-            
+
             if success {
                 info!("[AI Test] ✓ AI connection test successful");
             } else {
-                warn!("[AI Test] ✗ AI connection test failed: {}", log_sanitizer::sanitize(&filtered));
+                warn!(
+                    "[AI Test] ✗ AI connection test failed: {}",
+                    log_sanitizer::sanitize(&filtered)
+                );
             }
-            
+
             Ok(AITestResult {
                 success,
                 provider: "current".to_string(),
                 model: "default".to_string(),
-                response: if success { Some(filtered.clone()) } else { None },
+                response: if success {
+                    Some(filtered.clone())
+                } else {
+                    None
+                },
                 error: if success { None } else { Some(filtered) },
                 latency_ms: Some(latency),
             })
@@ -259,7 +283,10 @@ fn channel_needs_send_test(channel_type: &str) -> bool {
 
 /// Parse channel status from text output
 /// Format: "- Telegram default: enabled, configured, mode:polling, token:config"
-fn parse_channel_status_text(output: &str, channel_type: &str) -> Option<(bool, bool, bool, String)> {
+fn parse_channel_status_text(
+    output: &str,
+    channel_type: &str,
+) -> Option<(bool, bool, bool, String)> {
     let channel_lower = channel_type.to_lowercase();
 
     for line in output.lines() {
@@ -300,8 +327,13 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
             info!("[Channel Test] status command executed successfully");
 
             // Try to parse status from text output
-            if let Some((enabled, configured, linked, status_msg)) = parse_channel_status_text(output, &channel_type) {
-                debug_info = format!("enabled={}, configured={}, linked={}", enabled, configured, linked);
+            if let Some((enabled, configured, linked, status_msg)) =
+                parse_channel_status_text(output, &channel_type)
+            {
+                debug_info = format!(
+                    "enabled={}, configured={}, linked={}",
+                    enabled, configured, linked
+                );
                 info!("[Channel Test] {} status: {}", channel_type, debug_info);
 
                 if !configured {
@@ -310,7 +342,10 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
                         success: false,
                         channel: channel_type.clone(),
                         message: format!("{} not configured", channel_type),
-                        error: Some(format!("Please run: openclaw channels add --channel {}", channel_lower)),
+                        error: Some(format!(
+                            "Please run: openclaw channels add --channel {}",
+                            channel_lower
+                        )),
                     });
                 }
 
@@ -329,10 +364,18 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
                         if let Some(channels) = json.get("channels").and_then(|c| c.as_object()) {
                             if let Some(ch) = channels.get(&channel_lower) {
-                                let configured = ch.get("configured").and_then(|v| v.as_bool()).unwrap_or(false);
-                                let linked = ch.get("linked").and_then(|v| v.as_bool()).unwrap_or(false);
+                                let configured = ch
+                                    .get("configured")
+                                    .and_then(|v| v.as_bool())
+                                    .unwrap_or(false);
+                                let linked =
+                                    ch.get("linked").and_then(|v| v.as_bool()).unwrap_or(false);
                                 channel_ok = configured;
-                                status_message = if linked { "Linked".to_string() } else { "Configured".to_string() };
+                                status_message = if linked {
+                                    "Linked".to_string()
+                                } else {
+                                    "Configured".to_string()
+                                };
                             }
                         }
                     }
@@ -352,7 +395,10 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
 
     // If channel status is not OK, return failure directly
     if !channel_ok {
-        info!("[Channel Test] {} status check failed, not sending test message", channel_type);
+        info!(
+            "[Channel Test] {} status check failed, not sending test message",
+            channel_type
+        );
         let error_msg = if debug_info.is_empty() {
             "Channel not running or not configured".to_string()
         } else {
@@ -366,11 +412,17 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
         });
     }
 
-    info!("[Channel Test] {} status OK ({})", channel_type, status_message);
+    info!(
+        "[Channel Test] {} status OK ({})",
+        channel_type, status_message
+    );
 
     // For WhatsApp and iMessage, only return status check result, don't send test message
     if !channel_needs_send_test(&channel_type) {
-        info!("[Channel Test] {} doesn't need test message (status check only)", channel_type);
+        info!(
+            "[Channel Test] {} doesn't need test message (status check only)",
+            channel_type
+        );
         return Ok(ChannelTestResult {
             success: true,
             channel: channel_type.clone(),
@@ -384,23 +436,39 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
     let test_target = get_channel_test_target(&channel_type);
 
     if let Some(target) = test_target {
-        info!("[Channel Test] Step 3: Sending test message to {}...", target);
+        info!(
+            "[Channel Test] Step 3: Sending test message to {}...",
+            target
+        );
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-        let message = format!("🤖 OpenClaw Test Message\n\n✅ Connection successful!\n⏰ {}", timestamp);
+        let message = format!(
+            "🤖 OpenClaw Test Message\n\n✅ Connection successful!\n⏰ {}",
+            timestamp
+        );
 
         // Use openclaw message send to send test message
-        info!("[Channel Test] Executing: openclaw message send --channel {} --target {} ...", channel_lower, target);
+        info!(
+            "[Channel Test] Executing: openclaw message send --channel {} --target {} ...",
+            channel_lower, target
+        );
         let send_result = shell::run_openclaw(&[
-            "message", "send",
-            "--channel", &channel_lower,
-            "--target", &target,
-            "--message", &message,
-            "--json"
+            "message",
+            "send",
+            "--channel",
+            &channel_lower,
+            "--target",
+            &target,
+            "--message",
+            &message,
+            "--json",
         ]);
 
         match send_result {
             Ok(output) => {
-                info!("[Channel Test] Send command output length: {}", output.len());
+                info!(
+                    "[Channel Test] Send command output length: {}",
+                    output.len()
+                );
 
                 // Check if send was successful
                 let send_ok = if let Some(json_str) = extract_json_from_output(&output) {
@@ -408,19 +476,35 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
                         // Check various success indicators
                         let has_ok = json.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
-                        let has_success = json.get("success").and_then(|v| v.as_bool()).unwrap_or(false);
+                        let has_success = json
+                            .get("success")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
                         let has_message_id = json.get("messageId").is_some();
-                        let has_payload_ok = json.get("payload").and_then(|p| p.get("ok")).and_then(|v| v.as_bool()).unwrap_or(false);
-                        let has_payload_message_id = json.get("payload").and_then(|p| p.get("messageId")).is_some();
-                        let has_payload_result_message_id = json.get("payload")
+                        let has_payload_ok = json
+                            .get("payload")
+                            .and_then(|p| p.get("ok"))
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+                        let has_payload_message_id = json
+                            .get("payload")
+                            .and_then(|p| p.get("messageId"))
+                            .is_some();
+                        let has_payload_result_message_id = json
+                            .get("payload")
                             .and_then(|p| p.get("result"))
                             .and_then(|r| r.get("messageId"))
                             .is_some();
-                        
+
                         info!("[Channel Test] Condition check: ok={}, success={}, messageId={}, payload.ok={}, payload.messageId={}, payload.result.messageId={}",
                             has_ok, has_success, has_message_id, has_payload_ok, has_payload_message_id, has_payload_result_message_id);
 
-                        has_ok || has_success || has_message_id || has_payload_ok || has_payload_message_id || has_payload_result_message_id
+                        has_ok
+                            || has_success
+                            || has_message_id
+                            || has_payload_ok
+                            || has_payload_message_id
+                            || has_payload_result_message_id
                     } else {
                         info!("[Channel Test] JSON parsing failed");
                         false
@@ -428,11 +512,15 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
                 } else {
                     info!("[Channel Test] No JSON extracted, checking keywords");
                     // If no JSON, check for error keywords
-                    !output.to_lowercase().contains("error") && !output.to_lowercase().contains("failed")
+                    !output.to_lowercase().contains("error")
+                        && !output.to_lowercase().contains("failed")
                 };
 
                 if send_ok {
-                    info!("[Channel Test] ✓ {} test message sent successfully", channel_type);
+                    info!(
+                        "[Channel Test] ✓ {} test message sent successfully",
+                        channel_type
+                    );
                     Ok(ChannelTestResult {
                         success: true,
                         channel: channel_type.clone(),
@@ -450,7 +538,10 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
                 }
             }
             Err(e) => {
-                info!("[Channel Test] ✗ {} send command execution failed: {}", channel_type, e);
+                info!(
+                    "[Channel Test] ✗ {} send command execution failed: {}",
+                    channel_type, e
+                );
                 Ok(ChannelTestResult {
                     success: false,
                     channel: channel_type.clone(),
@@ -469,7 +560,10 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
             _ => "Please configure test target",
         };
 
-        info!("[Channel Test] {} test target not configured, skipping message send ({})", channel_type, hint);
+        info!(
+            "[Channel Test] {} test target not configured, skipping message send ({})",
+            channel_type, hint
+        );
         Ok(ChannelTestResult {
             success: true,
             channel: channel_type.clone(),
@@ -481,17 +575,27 @@ pub async fn test_channel(channel_type: String) -> Result<ChannelTestResult, Str
 
 /// Send test message to channel
 #[command]
-pub async fn send_test_message(channel_type: String, target: String) -> Result<ChannelTestResult, String> {
+pub async fn send_test_message(
+    channel_type: String,
+    target: String,
+) -> Result<ChannelTestResult, String> {
     let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-    let message = format!("🤖 OpenClaw Test Message\n\n✅ Connection successful!\n⏰ {}", timestamp);
+    let message = format!(
+        "🤖 OpenClaw Test Message\n\n✅ Connection successful!\n⏰ {}",
+        timestamp
+    );
 
     // Use openclaw message send command to send test message
     let send_result = shell::run_openclaw(&[
-        "message", "send",
-        "--channel", &channel_type,
-        "--target", &target,
-        "--message", &message,
-        "--json"
+        "message",
+        "send",
+        "--channel",
+        &channel_type,
+        "--target",
+        &target,
+        "--message",
+        &message,
+        "--json",
     ]);
 
     match send_result {
@@ -499,7 +603,9 @@ pub async fn send_test_message(channel_type: String, target: String) -> Result<C
             // Try to extract and parse JSON result from mixed output
             let success = if let Some(json_str) = extract_json_from_output(&output) {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                    json.get("success").and_then(|v| v.as_bool()).unwrap_or(false)
+                    json.get("success")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
                         || json.get("ok").and_then(|v| v.as_bool()).unwrap_or(false)
                         || json.get("messageId").is_some()
                 } else {
@@ -507,13 +613,18 @@ pub async fn send_test_message(channel_type: String, target: String) -> Result<C
                 }
             } else {
                 // Non-JSON output, check for error keywords
-                !output.to_lowercase().contains("error") && !output.to_lowercase().contains("failed")
+                !output.to_lowercase().contains("error")
+                    && !output.to_lowercase().contains("failed")
             };
 
             Ok(ChannelTestResult {
                 success,
                 channel: channel_type,
-                message: if success { "Message sent".to_string() } else { "Message send failed".to_string() },
+                message: if success {
+                    "Message sent".to_string()
+                } else {
+                    "Message send failed".to_string()
+                },
                 error: if success { None } else { Some(output) },
             })
         }
@@ -544,16 +655,16 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
     } else {
         "unknown".to_string()
     };
-    
+
     let openclaw_installed = shell::get_openclaw_path().is_some();
     let openclaw_version = if openclaw_installed {
         shell::run_openclaw(&["--version"]).ok()
     } else {
         None
     };
-    
+
     let node_version = shell::run_command_output("node", &["--version"]).ok();
-    
+
     Ok(SystemInfo {
         os,
         os_version,
@@ -568,7 +679,10 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
 /// Start channel login (e.g., WhatsApp QR code scan)
 #[command]
 pub async fn start_channel_login(channel_type: String) -> Result<String, String> {
-    info!("[Channel Login] Starting channel login flow: {}", channel_type);
+    info!(
+        "[Channel Login] Starting channel login flow: {}",
+        channel_type
+    );
 
     match channel_type.as_str() {
         "whatsapp" => {

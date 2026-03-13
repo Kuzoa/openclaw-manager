@@ -1,6 +1,6 @@
 use crate::utils::shell;
+use log::{debug, info};
 use tauri::command;
-use log::{info, debug};
 
 /// Check if OpenClaw is installed
 #[command]
@@ -8,7 +8,14 @@ pub async fn check_openclaw_installed() -> Result<bool, String> {
     info!("[Process Check] Checking if OpenClaw is installed...");
     // Use get_openclaw_path to check, because command_exists may be unreliable on Windows
     let installed = shell::get_openclaw_path().is_some();
-    info!("[Process Check] OpenClaw installation status: {}", if installed { "installed" } else { "not installed" });
+    info!(
+        "[Process Check] OpenClaw installation status: {}",
+        if installed {
+            "installed"
+        } else {
+            "not installed"
+        }
+    );
     Ok(installed)
 }
 
@@ -22,11 +29,11 @@ pub async fn get_openclaw_version() -> Result<Option<String>, String> {
             let v = version.trim().to_string();
             info!("[Process Check] OpenClaw version: {}", v);
             Ok(Some(v))
-        },
+        }
         Err(e) => {
             debug!("[Process Check] Failed to get version: {}", e);
             Ok(None)
-        },
+        }
     }
 }
 
@@ -42,12 +49,18 @@ pub async fn check_port_in_use(port: u16) -> Result<bool, String> {
         let result = shell::run_openclaw(&["gateway", "health", "--timeout", "2000"]);
         // If health command succeeds, the port is occupied by gateway
         let in_use = result.is_ok();
-        info!("[Process Check] Port 18789 status: {}", if in_use { "in use" } else { "available" });
+        info!(
+            "[Process Check] Port 18789 status: {}",
+            if in_use { "in use" } else { "available" }
+        );
         return Ok(in_use);
     }
 
     // For non-default ports, try using TCP connection check
-    debug!("[Process Check] Using TCP connection to check port {}...", port);
+    debug!(
+        "[Process Check] Using TCP connection to check port {}...",
+        port
+    );
     use std::net::TcpStream;
     use std::time::Duration;
 
@@ -56,11 +69,11 @@ pub async fn check_port_in_use(port: u16) -> Result<bool, String> {
         Ok(_) => {
             info!("[Process Check] Port {} is in use", port);
             Ok(true)
-        },
+        }
         Err(_) => {
             info!("[Process Check] Port {} is available", port);
             Ok(false)
-        },
+        }
     }
 }
 
@@ -71,26 +84,29 @@ pub struct SecureVersionInfo {
 }
 
 /// Check if current OpenClaw version is secure (>= 2026.1.29)
+/// Uses EnvironmentCache for lazy-loaded version check
 #[command]
 pub async fn check_secure_version() -> Result<SecureVersionInfo, String> {
-    info!("[Process Check] Checking OpenClaw version security...");
-    match shell::run_openclaw(&["--version"]) {
-        Ok(version) => {
-            let v = version.trim().to_string();
-            // Basic string comparison assuming YYYY.M.D format
-            let is_secure = v >= "2026.1.29".to_string();
-            
+    info!("[Process Check] Checking OpenClaw version security (using cache)...");
+
+    use crate::utils::cache::ENVIRONMENT_CACHE;
+
+    // Get version from cache
+    let version = ENVIRONMENT_CACHE.get_openclaw_version();
+    let is_secure = ENVIRONMENT_CACHE.get_is_secure().unwrap_or(false);
+
+    match version {
+        Some(v) => {
             info!("[Process Check] Version: {}, Secure: {}", v, is_secure);
             Ok(SecureVersionInfo {
                 current_version: v,
                 is_secure,
             })
-        },
-        Err(e) => {
-            debug!("[Process Check] Failed to get version for security check: {}", e);
-            // If we can't get version, assume insecure or handle error
-            Err(e)
-        },
+        }
+        None => {
+            debug!("[Process Check] Failed to get version for security check");
+            Err("Cannot get OpenClaw version".to_string())
+        }
     }
 }
 
@@ -107,11 +123,11 @@ pub async fn get_node_version() -> Result<Option<String>, String> {
         Ok(version) => {
             info!("[Process Check] Node.js version: {}", version);
             Ok(Some(version))
-        },
+        }
         Err(e) => {
             debug!("[Process Check] Failed to get Node.js version: {}", e);
             Ok(None)
-        },
+        }
     }
 }
 
@@ -120,7 +136,14 @@ pub async fn get_node_version() -> Result<Option<String>, String> {
 pub async fn check_ollama_installed() -> Result<bool, String> {
     info!("[Ollama Check] Checking if Ollama is installed...");
     let installed = shell::command_exists("ollama");
-    info!("[Ollama Check] Ollama installation status: {}", if installed { "installed" } else { "not installed" });
+    info!(
+        "[Ollama Check] Ollama installation status: {}",
+        if installed {
+            "installed"
+        } else {
+            "not installed"
+        }
+    );
     Ok(installed)
 }
 
@@ -131,7 +154,7 @@ pub async fn get_ollama_models() -> Result<Vec<String>, String> {
     match shell::run_command_output("ollama", &["list"]) {
         Ok(output) => {
             let mut models = Vec::new();
-            // Output format: NAME               ID           SIZE   MODIFIED   
+            // Output format: NAME               ID           SIZE   MODIFIED
             //                qwen3.5:9b         abcd1234ef   5.5GB  3 days ago
             for (i, line) in output.lines().enumerate() {
                 if i == 0 || line.trim().is_empty() {
@@ -143,11 +166,11 @@ pub async fn get_ollama_models() -> Result<Vec<String>, String> {
             }
             info!("[Ollama Check] Found {} installed models", models.len());
             Ok(models)
-        },
+        }
         Err(e) => {
             debug!("[Ollama Check] Failed to get Ollama models: {}", e);
             Err(e)
-        },
+        }
     }
 }
 
@@ -158,12 +181,18 @@ pub async fn install_ollama_model(model_name: String) -> Result<String, String> 
     // Use `ollama pull` instead of `ollama run` so it doesn't stay interactive.
     match shell::run_command_output("ollama", &["pull", &model_name]) {
         Ok(_) => {
-            info!("[Ollama Check] Successfully installed model: {}", model_name);
+            info!(
+                "[Ollama Check] Successfully installed model: {}",
+                model_name
+            );
             Ok(format!("Successfully installed {}", model_name))
-        },
+        }
         Err(e) => {
-            debug!("[Ollama Check] Failed to install Ollama model {}: {}", model_name, e);
+            debug!(
+                "[Ollama Check] Failed to install Ollama model {}: {}",
+                model_name, e
+            );
             Err(e)
-        },
+        }
     }
 }

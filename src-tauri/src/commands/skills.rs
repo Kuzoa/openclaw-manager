@@ -1,10 +1,10 @@
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use std::process::Command;
 use tauri::command;
-use log::{info, error, debug};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Skill {
@@ -33,8 +33,8 @@ pub async fn get_skills() -> Result<Vec<Skill>, String> {
         return Ok(skills);
     }
 
-    let entries = fs::read_dir(&skills_dir)
-        .map_err(|e| format!("Failed to read skills directory: {}", e))?;
+    let entries =
+        fs::read_dir(&skills_dir).map_err(|e| format!("Failed to read skills directory: {}", e))?;
 
     for entry in entries {
         if let Ok(entry) = entry {
@@ -44,16 +44,20 @@ pub async fn get_skills() -> Result<Vec<Skill>, String> {
                 if skill_md.exists() {
                     let content = fs::read_to_string(&skill_md)
                         .map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
-                    
+
                     // Simple frontmatter parsing
                     if content.starts_with("---") {
                         if let Some(end_idx) = content[3..].find("---") {
-                            let frontmatter_str = &content[3..end_idx+3];
+                            let frontmatter_str = &content[3..end_idx + 3];
                             match serde_yaml::from_str::<SkillFrontmatter>(frontmatter_str) {
                                 Ok(frontmatter) => {
                                     info!("Loaded skill: {}", frontmatter.name);
                                     skills.push(Skill {
-                                        id: path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+                                        id: path
+                                            .file_name()
+                                            .unwrap_or_default()
+                                            .to_string_lossy()
+                                            .to_string(),
                                         name: frontmatter.name,
                                         description: frontmatter.description,
                                         path: path.to_string_lossy().to_string(),
@@ -84,7 +88,7 @@ fn create_command(program: &str) -> Command {
 #[command]
 pub async fn check_clawhub_installed() -> Result<bool, String> {
     info!("Checking if clawhub is installed");
-    
+
     // Method 1: Check if 'clawhub' command exists
     #[cfg(target_os = "windows")]
     let program = "cmd";
@@ -164,10 +168,10 @@ pub async fn install_clawhub() -> Result<String, String> {
 #[command]
 pub async fn install_skill(skill_name: String) -> Result<String, String> {
     info!("Installing skill: {}", skill_name);
-    
+
     let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
     let openclaw_dir = home_dir.join(".openclaw");
-    
+
     // Ensure .openclaw directory exists
     if !openclaw_dir.exists() {
         fs::create_dir_all(&openclaw_dir)
@@ -205,10 +209,10 @@ pub async fn install_skill(skill_name: String) -> Result<String, String> {
 #[command]
 pub async fn uninstall_skill(skill_id: String) -> Result<String, String> {
     info!("Uninstalling skill: {}", skill_id);
-    
+
     let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
     let skill_path = home_dir.join(".openclaw").join("skills").join(&skill_id);
-    
+
     if !skill_path.exists() {
         return Err(format!("Skill directory not found: {:?}", skill_path));
     }

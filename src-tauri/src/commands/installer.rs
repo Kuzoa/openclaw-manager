@@ -1,7 +1,7 @@
 use crate::utils::{log_sanitizer, platform, shell};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use tauri::command;
-use log::{info, warn, error, debug};
 
 /// Environment check result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +28,8 @@ pub struct EnvironmentStatus {
     pub ready: bool,
     /// Operating system
     pub os: String,
+    /// Whether OpenClaw version is secure (>= 2026.1.29)
+    pub is_secure: bool,
 }
 
 /// Installation progress
@@ -55,36 +57,52 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
     let os = platform::get_os();
     info!("[Environment Check] Operating system: {}", os);
 
-    // Run expensive checks concurrently
-    info!("[Environment Check] Checking Node.js, Git, and OpenClaw concurrently...");
-    let (node_res, git_res, openclaw_res) = tokio::join!(
-        tokio::task::spawn_blocking(|| get_node_version()),
-        tokio::task::spawn_blocking(|| get_git_version()),
-        tokio::task::spawn_blocking(|| get_openclaw_version())
+    // Use EnvironmentCache for lazy-loaded, cached environment data
+    use crate::utils::cache::ENVIRONMENT_CACHE;
+
+    // Run expensive checks concurrently using cache
+    info!("[Environment Check] Checking Node.js, Git, and OpenClaw concurrently (using cache)...");
+    let (node_res, git_res, openclaw_res, is_secure_res) = tokio::join!(
+        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_node_version()),
+        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_git_version()),
+        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_openclaw_version()),
+        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_is_secure())
     );
 
     let node_version = node_res.unwrap_or(None);
     let git_version = git_res.unwrap_or(None);
     let openclaw_version = openclaw_res.unwrap_or(None);
+    let is_secure = is_secure_res.unwrap_or(None).unwrap_or(false);
 
     let node_installed = node_version.is_some();
     let node_version_ok = check_node_version_requirement(&node_version);
-    info!("[Environment Check] Node.js: installed={}, version={:?}, version_ok={}",
-        node_installed, node_version, node_version_ok);
+    info!(
+        "[Environment Check] Node.js: installed={}, version={:?}, version_ok={}",
+        node_installed, node_version, node_version_ok
+    );
 
     let git_installed = git_version.is_some();
-    info!("[Environment Check] Git: installed={}, version={:?}",
-        git_installed, git_version);
+    info!(
+        "[Environment Check] Git: installed={}, version={:?}",
+        git_installed, git_version
+    );
 
     let openclaw_installed = openclaw_version.is_some();
-    info!("[Environment Check] OpenClaw: installed={}, version={:?}",
-        openclaw_installed, openclaw_version);
+    info!(
+        "[Environment Check] OpenClaw: installed={}, version={:?}, is_secure={}",
+        openclaw_installed, openclaw_version, is_secure
+    );
 
     // Check Gateway Service (only if OpenClaw is installed)
     let gateway_service_installed = if openclaw_installed {
         info!("[Environment Check] Checking Gateway Service...");
-        let installed = tokio::task::spawn_blocking(|| check_gateway_installed()).await.unwrap_or(false);
-        info!("[Environment Check] Gateway Service: installed={}", installed);
+        let installed = tokio::task::spawn_blocking(|| check_gateway_installed())
+            .await
+            .unwrap_or(false);
+        info!(
+            "[Environment Check] Gateway Service: installed={}",
+            installed
+        );
         installed
     } else {
         false
@@ -93,11 +111,18 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
     // Check config directory
     let config_dir = platform::get_config_dir();
     let config_dir_exists = std::path::Path::new(&config_dir).exists();
-    info!("[Environment Check] Config directory: {}, exists={}", config_dir, config_dir_exists);
+    info!(
+        "[Environment Check] Config directory: {}, exists={}",
+        config_dir, config_dir_exists
+    );
 
-    let ready = node_installed && node_version_ok && openclaw_installed && gateway_service_installed;
-    info!("[Environment Check] Environment ready status: ready={}", ready);
-    
+    let ready =
+        node_installed && node_version_ok && openclaw_installed && gateway_service_installed;
+    info!(
+        "[Environment Check] Environment ready status: ready={}",
+        ready
+    );
+
     Ok(EnvironmentStatus {
         node_installed,
         node_version,
@@ -110,6 +135,7 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
         config_dir_exists,
         ready,
         os,
+        is_secure,
     })
 }
 
@@ -154,7 +180,11 @@ fn get_node_version() -> Option<String> {
         for path in possible_paths {
             if std::path::Path::new(&path).exists() {
                 if let Ok(output) = shell::run_command_output(&path, &["--version"]) {
-                    info!("[Environment Check] Found Node.js at {}: {}", path, output.trim());
+                    info!(
+                        "[Environment Check] Found Node.js at {}: {}",
+                        path,
+                        output.trim()
+                    );
                     return Some(output.trim().to_string());
                 }
             }
@@ -178,7 +208,7 @@ fn get_unix_node_paths() -> Vec<String> {
 
     // Homebrew (macOS)
     paths.push("/opt/homebrew/bin/node".to_string()); // Apple Silicon
-    paths.push("/usr/local/bin/node".to_string());     // Intel Mac
+    paths.push("/usr/local/bin/node".to_string()); // Intel Mac
 
     // System installation
     paths.push("/usr/bin/node".to_string());
@@ -200,7 +230,10 @@ fn get_unix_node_paths() -> Vec<String> {
         if let Ok(version) = std::fs::read_to_string(&nvm_default) {
             let version = version.trim();
             if !version.is_empty() {
-                paths.insert(0, format!("{}/.nvm/versions/node/v{}/bin/node", home_str, version));
+                paths.insert(
+                    0,
+                    format!("{}/.nvm/versions/node/v{}/bin/node", home_str, version),
+                );
             }
         }
 
@@ -236,20 +269,38 @@ fn get_windows_node_paths() -> Vec<String> {
         let home_str = home.display().to_string();
 
         // nvm for Windows user installation
-        paths.push(format!("{}\\AppData\\Roaming\\nvm\\current\\node.exe", home_str));
+        paths.push(format!(
+            "{}\\AppData\\Roaming\\nvm\\current\\node.exe",
+            home_str
+        ));
 
         // fnm (Fast Node Manager) for Windows
-        paths.push(format!("{}\\AppData\\Roaming\\fnm\\aliases\\default\\node.exe", home_str));
-        paths.push(format!("{}\\AppData\\Local\\fnm\\aliases\\default\\node.exe", home_str));
+        paths.push(format!(
+            "{}\\AppData\\Roaming\\fnm\\aliases\\default\\node.exe",
+            home_str
+        ));
+        paths.push(format!(
+            "{}\\AppData\\Local\\fnm\\aliases\\default\\node.exe",
+            home_str
+        ));
         paths.push(format!("{}\\.fnm\\aliases\\default\\node.exe", home_str));
 
         // volta
-        paths.push(format!("{}\\AppData\\Local\\Volta\\bin\\node.exe", home_str));
+        paths.push(format!(
+            "{}\\AppData\\Local\\Volta\\bin\\node.exe",
+            home_str
+        ));
         // volta invokes via shim, just check bin directory
 
         // scoop installation
-        paths.push(format!("{}\\scoop\\apps\\nodejs\\current\\node.exe", home_str));
-        paths.push(format!("{}\\scoop\\apps\\nodejs-lts\\current\\node.exe", home_str));
+        paths.push(format!(
+            "{}\\scoop\\apps\\nodejs\\current\\node.exe",
+            home_str
+        ));
+        paths.push(format!(
+            "{}\\scoop\\apps\\nodejs-lts\\current\\node.exe",
+            home_str
+        ));
 
         // chocolatey installation
         paths.push("C:\\ProgramData\\chocolatey\\lib\\nodejs\\tools\\node.exe".to_string());
@@ -326,7 +377,8 @@ fn get_openclaw_version() -> Option<String> {
 fn check_node_version_requirement(version: &Option<String>) -> bool {
     if let Some(v) = version {
         // Parse version "v22.1.0" -> 22
-        let major = v.trim_start_matches('v')
+        let major = v
+            .trim_start_matches('v')
             .split('.')
             .next()
             .and_then(|s| s.parse::<u32>().ok())
@@ -385,7 +437,8 @@ async fn install_gateway_windows() -> Result<String, String> {
     let openclaw_path = shell::get_openclaw_path().unwrap_or_else(|| "openclaw".to_string());
     let escaped_path = openclaw_path.replace('\\', "\\\\");
 
-    let script = format!(r#"
+    let script = format!(
+        r#"
 Start-Process powershell -ArgumentList '-NoExit', '-Command', '
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  OpenClaw Gateway Service Installer" -ForegroundColor White
@@ -407,7 +460,9 @@ Write-Host "You can close this window and click Refresh in OpenClaw Manager." -F
 Write-Host ""
 Read-Host "Press Enter to close this window"
 ' -Verb RunAs
-"#, escaped_path);
+"#,
+        escaped_path
+    );
 
     match shell::run_powershell_output(&script) {
         Ok(_) => {
@@ -415,7 +470,10 @@ Read-Host "Press Enter to close this window"
             Ok("Gateway install terminal opened with administrator privileges. Please complete the installation and click Refresh.".to_string())
         }
         Err(e) => {
-            warn!("[Gateway Install] Failed to launch elevated terminal: {}", e);
+            warn!(
+                "[Gateway Install] Failed to launch elevated terminal: {}",
+                e
+            );
             Err(format!("Failed to open administrator terminal: {}. Please open PowerShell as Administrator and run: openclaw gateway install", e))
         }
     }
@@ -510,13 +568,19 @@ read -p "Press Enter to close this window..."
             .spawn()
             .is_ok()
         {
-            info!("[Gateway Install] Terminal '{}' launched successfully on Linux", term);
+            info!(
+                "[Gateway Install] Terminal '{}' launched successfully on Linux",
+                term
+            );
             return Ok("Gateway install terminal opened. Please enter your password when prompted and click Refresh after completion.".to_string());
         }
     }
 
     warn!("[Gateway Install] No terminal emulator found on Linux");
-    Err("Unable to launch terminal. Please open a terminal and run: sudo openclaw gateway install".to_string())
+    Err(
+        "Unable to launch terminal. Please open a terminal and run: sudo openclaw gateway install"
+            .to_string(),
+    )
 }
 
 /// Install Node.js
@@ -530,15 +594,15 @@ pub async fn install_nodejs() -> Result<InstallResult, String> {
         "windows" => {
             info!("[Install Node.js] Using Windows installation method...");
             install_nodejs_windows().await
-        },
+        }
         "macos" => {
             info!("[Install Node.js] Using macOS installation method (Homebrew)...");
             install_nodejs_macos().await
-        },
+        }
         "linux" => {
             info!("[Install Node.js] Using Linux installation method...");
             install_nodejs_linux().await
-        },
+        }
         _ => {
             error!("[Install Node.js] Unsupported operating system: {}", os);
             Ok(InstallResult {
@@ -546,7 +610,7 @@ pub async fn install_nodejs() -> Result<InstallResult, String> {
                 message: "Unsupported operating system".to_string(),
                 error: Some(format!("Unsupported operating system: {}", os)),
             })
-        },
+        }
     };
 
     match &result {
@@ -725,11 +789,11 @@ pub async fn install_openclaw() -> Result<InstallResult, String> {
         "windows" => {
             info!("[Install OpenClaw] Using Windows installation method...");
             install_openclaw_windows().await
-        },
+        }
         _ => {
             info!("[Install OpenClaw] Using Unix installation method (npm)...");
             install_openclaw_unix().await
-        },
+        }
     };
 
     match &result {
@@ -769,6 +833,10 @@ if ($openclawVersion) {
 
     match shell::run_powershell_output(script) {
         Ok(output) => {
+            // Clear cache BEFORE verification to detect newly installed openclaw
+            info!("[Install OpenClaw] Clearing cache before verification");
+            crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
+
             if get_openclaw_version().is_some() {
                 Ok(InstallResult {
                     success: true,
@@ -778,7 +846,7 @@ if ($openclawVersion) {
             } else {
                 Ok(InstallResult {
                     success: false,
-                    message: "Application restart required after installation".to_string(),
+                    message: "Installation completed but verification failed. Please restart the application.".to_string(),
                     error: Some(output),
                 })
             }
@@ -808,11 +876,25 @@ openclaw --version
 "#;
 
     match shell::run_bash_output(script) {
-        Ok(output) => Ok(InstallResult {
-            success: true,
-            message: format!("OpenClaw installed successfully! {}", output),
-            error: None,
-        }),
+        Ok(output) => {
+            // Clear cache BEFORE verification to detect newly installed openclaw
+            info!("[Install OpenClaw] Clearing cache before verification");
+            crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
+
+            if get_openclaw_version().is_some() {
+                Ok(InstallResult {
+                    success: true,
+                    message: format!("OpenClaw installed successfully! {}", output),
+                    error: None,
+                })
+            } else {
+                Ok(InstallResult {
+                    success: false,
+                    message: "Installation completed but verification failed. Please restart the application.".to_string(),
+                    error: Some(output),
+                })
+            }
+        }
         Err(e) => Ok(InstallResult {
             success: false,
             message: "OpenClaw installation failed".to_string(),
@@ -846,7 +928,10 @@ pub async fn init_openclaw_config() -> Result<InstallResult, String> {
         let path = format!("{}/{}", config_dir, subdir);
         info!("[Init Config] Creating subdirectory: {}", subdir);
         if let Err(e) = std::fs::create_dir_all(&path) {
-            error!("[Init Config] Failed to create directory: {} - {}", subdir, e);
+            error!(
+                "[Init Config] Failed to create directory: {} - {}",
+                subdir, e
+            );
             return Ok(InstallResult {
                 success: false,
                 message: format!("Failed to create directory: {}", subdir),
@@ -878,18 +963,26 @@ pub async fn init_openclaw_config() -> Result<InstallResult, String> {
 
     // Also set controlUi.allowInsecureAuth for local manager (skip device pairing)
     info!("[Init Config] Executing: openclaw config set gateway.controlUi.allowInsecureAuth true");
-    let _ = shell::run_openclaw(&["config", "set", "gateway.controlUi.allowInsecureAuth", "true"]);
+    let _ = shell::run_openclaw(&[
+        "config",
+        "set",
+        "gateway.controlUi.allowInsecureAuth",
+        "true",
+    ]);
 
     match result {
         Ok(output) => {
             info!("[Init Config] Configuration initialized successfully");
-            debug!("[Init Config] Command output: {}", log_sanitizer::sanitize(&output));
+            debug!(
+                "[Init Config] Command output: {}",
+                log_sanitizer::sanitize(&output)
+            );
             Ok(InstallResult {
                 success: true,
                 message: "Configuration initialized successfully!".to_string(),
                 error: None,
             })
-        },
+        }
         Err(e) => {
             error!("[Init Config] Configuration initialization failed: {}", e);
             Ok(InstallResult {
@@ -897,7 +990,7 @@ pub async fn init_openclaw_config() -> Result<InstallResult, String> {
                 message: "Configuration initialization failed".to_string(),
                 error: Some(e),
             })
-        },
+        }
     }
 }
 
@@ -1129,27 +1222,35 @@ pub async fn uninstall_openclaw() -> Result<InstallResult, String> {
         "windows" => {
             info!("[Uninstall OpenClaw] Using Windows uninstallation method...");
             uninstall_openclaw_windows().await
-        },
+        }
         _ => {
             info!("[Uninstall OpenClaw] Using Unix uninstallation method (npm)...");
             uninstall_openclaw_unix().await
-        },
+        }
     };
 
     // After npm uninstall, delete the .openclaw config directory
     if let Some(home) = dirs::home_dir() {
         let openclaw_dir = home.join(".openclaw");
         if openclaw_dir.exists() {
-            info!("[Uninstall OpenClaw] Deleting .openclaw directory: {:?}", openclaw_dir);
+            info!(
+                "[Uninstall OpenClaw] Deleting .openclaw directory: {:?}",
+                openclaw_dir
+            );
             match std::fs::remove_dir_all(&openclaw_dir) {
                 Ok(_) => info!("[Uninstall OpenClaw] Successfully deleted .openclaw directory"),
-                Err(e) => warn!("[Uninstall OpenClaw] Failed to delete .openclaw directory: {}", e),
+                Err(e) => warn!(
+                    "[Uninstall OpenClaw] Failed to delete .openclaw directory: {}",
+                    e
+                ),
             }
         } else {
             info!("[Uninstall OpenClaw] .openclaw directory does not exist, skipping");
         }
     } else {
-        warn!("[Uninstall OpenClaw] Could not determine home directory, skipping .openclaw deletion");
+        warn!(
+            "[Uninstall OpenClaw] Could not determine home directory, skipping .openclaw deletion"
+        );
     }
 
     match &result {
@@ -1169,6 +1270,10 @@ async fn uninstall_openclaw_windows() -> Result<InstallResult, String> {
     match shell::run_cmd_output("npm uninstall -g openclaw") {
         Ok(output) => {
             info!("[Uninstall OpenClaw] npm output: {}", output);
+
+            // Invalidate cache after uninstallation
+            info!("[Uninstall OpenClaw] Invalidating cache after uninstallation");
+            crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
 
             // Verify uninstallation was successful
             std::thread::sleep(std::time::Duration::from_millis(500));
@@ -1214,11 +1319,17 @@ fi
 "#;
 
     match shell::run_bash_output(script) {
-        Ok(output) => Ok(InstallResult {
-            success: true,
-            message: format!("OpenClaw has been successfully uninstalled! {}", output),
-            error: None,
-        }),
+        Ok(output) => {
+            // Invalidate cache after uninstallation
+            info!("[Uninstall OpenClaw] Invalidating cache after uninstallation");
+            crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
+
+            Ok(InstallResult {
+                success: true,
+                message: format!("OpenClaw has been successfully uninstalled! {}", output),
+                error: None,
+            })
+        }
         Err(e) => Ok(InstallResult {
             success: false,
             message: "OpenClaw uninstallation failed".to_string(),
@@ -1245,9 +1356,13 @@ pub struct UpdateInfo {
 pub async fn check_openclaw_update() -> Result<UpdateInfo, String> {
     info!("[Version Check] Starting OpenClaw update check...");
 
-    // Get current version
-    let current_version = get_openclaw_version();
-    info!("[Version Check] Current version: {:?}", current_version);
+    // Get current version from cache
+    use crate::utils::cache::ENVIRONMENT_CACHE;
+    let current_version = ENVIRONMENT_CACHE.get_openclaw_version();
+    info!(
+        "[Version Check] Current version (from cache): {:?}",
+        current_version
+    );
 
     if current_version.is_none() {
         info!("[Version Check] OpenClaw is not installed");
@@ -1360,11 +1475,11 @@ pub async fn update_openclaw() -> Result<InstallResult, String> {
         "windows" => {
             info!("[Update OpenClaw] Using Windows update method...");
             update_openclaw_windows().await
-        },
+        }
         _ => {
             info!("[Update OpenClaw] Using Unix update method (npm)...");
             update_openclaw_unix().await
-        },
+        }
     };
 
     match &result {
@@ -1384,12 +1499,19 @@ async fn update_openclaw_windows() -> Result<InstallResult, String> {
         Ok(output) => {
             info!("[Update OpenClaw] npm output: {}", output);
 
-            // Get new version
+            // Invalidate cache after successful update
+            info!("[Update OpenClaw] Invalidating cache after successful update");
+            crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
+
+            // Get new version (will be cached on first access)
             let new_version = get_openclaw_version();
 
             Ok(InstallResult {
                 success: true,
-                message: format!("OpenClaw has been updated to {}", new_version.unwrap_or("latest version".to_string())),
+                message: format!(
+                    "OpenClaw has been updated to {}",
+                    new_version.unwrap_or("latest version".to_string())
+                ),
                 error: None,
             })
         }
@@ -1415,11 +1537,17 @@ openclaw --version
 "#;
 
     match shell::run_bash_output(script) {
-        Ok(output) => Ok(InstallResult {
-            success: true,
-            message: format!("OpenClaw has been updated! {}", output),
-            error: None,
-        }),
+        Ok(output) => {
+            // Invalidate cache after successful update
+            info!("[Update OpenClaw] Invalidating cache after successful update");
+            crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
+
+            Ok(InstallResult {
+                success: true,
+                message: format!("OpenClaw has been updated! {}", output),
+                error: None,
+            })
+        }
         Err(e) => Ok(InstallResult {
             success: false,
             message: "OpenClaw update failed".to_string(),
@@ -1428,3 +1556,19 @@ openclaw --version
     }
 }
 
+/// Invalidate environment cache
+///
+/// Call this when the environment may have changed:
+/// - After installing OpenClaw
+/// - After updating OpenClaw
+/// - After uninstalling OpenClaw
+/// - When user clicks refresh button
+///
+/// Note: Users may manually install/uninstall OpenClaw via terminal (e.g., `npm install -g openclaw`).
+/// In such cases, the UI "Refresh" button should trigger this invalidation to sync the cache.
+#[command]
+pub async fn invalidate_environment_cache() -> Result<(), String> {
+    info!("[Cache] Invalidating environment cache via Tauri command...");
+    crate::utils::cache::ENVIRONMENT_CACHE.invalidate();
+    Ok(())
+}

@@ -2,7 +2,7 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 /// Sanitizes sensitive information from log messages.
-/// 
+///
 /// Redacts:
 /// - API Keys (OpenAI, Anthropic, Google, generic patterns)
 /// - Bearer tokens

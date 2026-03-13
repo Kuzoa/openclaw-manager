@@ -34,10 +34,10 @@ mod tests {
         assert!(sanitized.contains("id=123"));
         assert!(!sanitized.contains("sensitive_token_value"));
     }
-    
+
     #[test]
     fn test_no_false_positives() {
-    let log = "User clicked button with id=key_button";
+        let log = "User clicked button with id=key_button";
         let sanitized = sanitize(log);
         assert_eq!(log, sanitized);
     }

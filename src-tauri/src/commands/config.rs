@@ -1,11 +1,11 @@
 use crate::models::{
-    AIConfigOverview, ChannelConfig, ConfiguredModel, ConfiguredProvider,
-    MCPConfig, ModelConfig, OfficialProvider, SuggestedModel,
+    AIConfigOverview, ChannelConfig, ConfiguredModel, ConfiguredProvider, MCPConfig, ModelConfig,
+    OfficialProvider, SuggestedModel,
 };
-use crate::utils::{file, platform, shell, log_sanitizer};
+use crate::utils::{file, log_sanitizer, platform, shell};
 use log::{debug, error, info, warn};
-use serde_json::{json, Value};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use tauri::command;
 
@@ -17,8 +17,8 @@ fn load_openclaw_config() -> Result<Value, String> {
         return Ok(json!({}));
     }
 
-    let content =
-        file::read_file(&config_path).map_err(|e| format!("Failed to read configuration file: {}", e))?;
+    let content = file::read_file(&config_path)
+        .map_err(|e| format!("Failed to read configuration file: {}", e))?;
 
     // Strip UTF-8 BOM if present (Windows editors sometimes add this)
     let content = content.strip_prefix('\u{FEFF}').unwrap_or(&content);
@@ -30,10 +30,11 @@ fn load_openclaw_config() -> Result<Value, String> {
 fn save_openclaw_config(config: &Value) -> Result<(), String> {
     let config_path = platform::get_config_file_path();
 
-    let content =
-        serde_json::to_string_pretty(config).map_err(|e| format!("Failed to serialize configuration: {}", e))?;
+    let content = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("Failed to serialize configuration: {}", e))?;
 
-    file::write_file(&config_path, &content).map_err(|e| format!("Failed to write configuration file: {}", e))
+    file::write_file(&config_path, &content)
+        .map_err(|e| format!("Failed to write configuration file: {}", e))
 }
 
 /// Load manager.json configuration (manager-specific settings)
@@ -44,23 +45,25 @@ fn load_manager_config() -> Result<Value, String> {
         return Ok(json!({}));
     }
 
-    let content =
-        file::read_file(&config_path).map_err(|e| format!("Failed to read manager configuration file: {}", e))?;
+    let content = file::read_file(&config_path)
+        .map_err(|e| format!("Failed to read manager configuration file: {}", e))?;
 
     // Strip UTF-8 BOM if present
     let content = content.strip_prefix('\u{FEFF}').unwrap_or(&content);
 
-    serde_json::from_str(content).map_err(|e| format!("Failed to parse manager configuration file: {}", e))
+    serde_json::from_str(content)
+        .map_err(|e| format!("Failed to parse manager configuration file: {}", e))
 }
 
 /// Save manager.json configuration
 fn save_manager_config(config: &Value) -> Result<(), String> {
     let config_path = platform::get_manager_config_file_path();
 
-    let content =
-        serde_json::to_string_pretty(config).map_err(|e| format!("Failed to serialize manager configuration: {}", e))?;
+    let content = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("Failed to serialize manager configuration: {}", e))?;
 
-    file::write_file(&config_path, &content).map_err(|e| format!("Failed to write manager configuration file: {}", e))
+    file::write_file(&config_path, &content)
+        .map_err(|e| format!("Failed to write manager configuration file: {}", e))
 }
 
 /// Get complete configuration
@@ -144,7 +147,8 @@ fn generate_token() -> String {
 
     // Generate token using timestamp and random number
     let random_part: u64 = (timestamp as u64) ^ 0x5DEECE66Du64;
-    format!("{:016x}{:016x}{:016x}",
+    format!(
+        "{:016x}{:016x}{:016x}",
         random_part,
         random_part.wrapping_mul(0x5DEECE66Du64),
         timestamp as u64
@@ -234,10 +238,16 @@ pub async fn repair_device_token() -> Result<String, String> {
             deleted.push("identity/device.json".to_string());
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            info!("[Device Token Repair] Not found (already clean): {}", identity_file);
+            info!(
+                "[Device Token Repair] Not found (already clean): {}",
+                identity_file
+            );
         }
         Err(e) => {
-            warn!("[Device Token Repair] Failed to delete {}: {}", identity_file, e);
+            warn!(
+                "[Device Token Repair] Failed to delete {}: {}",
+                identity_file, e
+            );
         }
     }
 
@@ -248,10 +258,16 @@ pub async fn repair_device_token() -> Result<String, String> {
             deleted.push("devices/paired.json".to_string());
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            info!("[Device Token Repair] Not found (already clean): {}", paired_file);
+            info!(
+                "[Device Token Repair] Not found (already clean): {}",
+                paired_file
+            );
         }
         Err(e) => {
-            warn!("[Device Token Repair] Failed to delete {}: {}", paired_file, e);
+            warn!(
+                "[Device Token Repair] Failed to delete {}: {}",
+                paired_file, e
+            );
         }
     }
 
@@ -268,10 +284,16 @@ pub async fn repair_device_token() -> Result<String, String> {
             deleted.push("identity/device-auth.json".to_string());
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            info!("[Device Token Repair] Not found (already clean): {}", device_auth_file);
+            info!(
+                "[Device Token Repair] Not found (already clean): {}",
+                device_auth_file
+            );
         }
         Err(e) => {
-            warn!("[Device Token Repair] Failed to delete {}: {}", device_auth_file, e);
+            warn!(
+                "[Device Token Repair] Failed to delete {}: {}",
+                device_auth_file, e
+            );
         }
     }
 
@@ -279,8 +301,15 @@ pub async fn repair_device_token() -> Result<String, String> {
         info!("[Device Token Repair] No stale files found, identity was already clean");
         Ok("Device identity already clean. Please restart the service.".to_string())
     } else {
-        info!("[Device Token Repair] Cleaned {} stale file(s): {:?}", deleted.len(), deleted);
-        Ok(format!("Cleaned stale device files: {}. Please restart the service.", deleted.join(", ")))
+        info!(
+            "[Device Token Repair] Cleaned {} stale file(s): {:?}",
+            deleted.len(),
+            deleted
+        );
+        Ok(format!(
+            "Cleaned stale device files: {}. Please restart the service.",
+            deleted.join(", ")
+        ))
     }
 }
 
@@ -449,16 +478,14 @@ pub async fn get_official_providers() -> Result<Vec<OfficialProvider>, String> {
             requires_api_key: true,
             default_api_key: None,
             docs_url: Some("https://docs.openclaw.ai/providers/glm".to_string()),
-            suggested_models: vec![
-                SuggestedModel {
-                    id: "glm-5".to_string(),
-                    name: "GLM-5".to_string(),
-                    description: Some("Latest flagship model".to_string()),
-                    context_window: Some(128000),
-                    max_tokens: Some(8192),
-                    recommended: true,
-                },
-            ],
+            suggested_models: vec![SuggestedModel {
+                id: "glm-5".to_string(),
+                name: "GLM-5".to_string(),
+                description: Some("Latest flagship model".to_string()),
+                context_window: Some(128000),
+                max_tokens: Some(8192),
+                recommended: true,
+            }],
         },
         OfficialProvider {
             id: "minimax".to_string(),
@@ -548,7 +575,9 @@ pub async fn get_official_providers() -> Result<Vec<OfficialProvider>, String> {
             id: "google".to_string(),
             name: "Google Gemini".to_string(),
             icon: "✨".to_string(),
-            default_base_url: Some("https://generativelanguage.googleapis.com/v1beta/openai/".to_string()),
+            default_base_url: Some(
+                "https://generativelanguage.googleapis.com/v1beta/openai/".to_string(),
+            ),
             api_type: "openai-completions".to_string(),
             requires_api_key: true,
             default_api_key: None,
@@ -618,7 +647,10 @@ pub async fn get_ai_config() -> Result<AIConfigOverview, String> {
     info!("[AI Config] Configuration file path: {}", config_path);
 
     let config = load_openclaw_config()?;
-    debug!("[AI Config] Configuration content: {}", serde_json::to_string_pretty(&config).unwrap_or_default());
+    debug!(
+        "[AI Config] Configuration content: {}",
+        serde_json::to_string_pretty(&config).unwrap_or_default()
+    );
 
     // Parse primary model
     let primary_model = config
@@ -633,13 +665,19 @@ pub async fn get_ai_config() -> Result<AIConfigOverview, String> {
         .and_then(|v| v.as_object())
         .map(|obj| obj.keys().cloned().collect())
         .unwrap_or_default();
-    info!("[AI Config] Number of available models: {}", available_models.len());
+    info!(
+        "[AI Config] Number of available models: {}",
+        available_models.len()
+    );
 
     // Parse configured Providers
     let mut configured_providers: Vec<ConfiguredProvider> = Vec::new();
 
     let providers_value = config.pointer("/models/providers");
-    info!("[AI Config] providers node exists: {}", providers_value.is_some());
+    info!(
+        "[AI Config] providers node exists: {}",
+        providers_value.is_some()
+    );
 
     if let Some(providers) = providers_value.and_then(|v| v.as_object()) {
         info!("[AI Config] Found {} Providers", providers.len());
@@ -668,7 +706,11 @@ pub async fn get_ai_config() -> Result<AIConfigOverview, String> {
 
             // Parse model list
             let models_array = provider_config.get("models").and_then(|v| v.as_array());
-            info!("[AI Config] Provider {} models array: {:?}", provider_name, models_array.map(|a| a.len()));
+            info!(
+                "[AI Config] Provider {} models array: {:?}",
+                provider_name,
+                models_array.map(|a| a.len())
+            );
 
             let models: Vec<ConfiguredModel> = models_array
                 .map(|arr| {
@@ -683,13 +725,19 @@ pub async fn get_ai_config() -> Result<AIConfigOverview, String> {
                             let full_id = format!("{}/{}", provider_name, id);
                             let is_primary = primary_model.as_ref() == Some(&full_id);
 
-                            info!("[AI Config] Parsed model: {} (is_primary: {})", full_id, is_primary);
+                            info!(
+                                "[AI Config] Parsed model: {} (is_primary: {})",
+                                full_id, is_primary
+                            );
 
                             Some(ConfiguredModel {
                                 full_id,
                                 id,
                                 name,
-                                api_type: m.get("api").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                api_type: m
+                                    .get("api")
+                                    .and_then(|v| v.as_str())
+                                    .map(|s| s.to_string()),
                                 context_window: m
                                     .get("contextWindow")
                                     .and_then(|v| v.as_u64())
@@ -705,7 +753,11 @@ pub async fn get_ai_config() -> Result<AIConfigOverview, String> {
                 })
                 .unwrap_or_default();
 
-            info!("[AI Config] Provider {} parsing complete: {} models", provider_name, models.len());
+            info!(
+                "[AI Config] Provider {} parsing complete: {} models",
+                provider_name,
+                models.len()
+            );
 
             configured_providers.push(ConfiguredProvider {
                 name: provider_name.clone(),
@@ -857,7 +909,10 @@ pub async fn save_provider(
     config["meta"]["lastTouchedAt"] = json!(now);
 
     save_openclaw_config(&config)?;
-    info!("[Save Provider] Provider {} saved successfully", provider_name);
+    info!(
+        "[Save Provider] Provider {} saved successfully",
+        provider_name
+    );
 
     Ok(format!("Provider {} saved", provider_name))
 }
@@ -966,7 +1021,10 @@ pub async fn add_available_model(model_id: String) -> Result<String, String> {
 /// Remove model from available list
 #[command]
 pub async fn remove_available_model(model_id: String) -> Result<String, String> {
-    info!("[Remove Model] Removing model from available list: {}", model_id);
+    info!(
+        "[Remove Model] Removing model from available list: {}",
+        model_id
+    );
 
     let mut config = load_openclaw_config()?;
 
@@ -989,17 +1047,17 @@ pub async fn remove_available_model(model_id: String) -> Result<String, String> 
 fn load_mcp_config_file() -> Result<HashMap<String, MCPConfig>, String> {
     let config_path = platform::get_mcp_config_file_path();
     let path = std::path::Path::new(&config_path);
-    
+
     if !path.exists() {
         return Ok(HashMap::new());
     }
-    
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read mcps.json: {}", e))?;
-    
-    let configs: HashMap<String, MCPConfig> = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse mcps.json: {}", e))?;
-    
+
+    let content =
+        std::fs::read_to_string(path).map_err(|e| format!("Failed to read mcps.json: {}", e))?;
+
+    let configs: HashMap<String, MCPConfig> =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse mcps.json: {}", e))?;
+
     Ok(configs)
 }
 
@@ -1009,16 +1067,16 @@ fn save_mcp_config_file(configs: &HashMap<String, MCPConfig>) -> Result<(), Stri
     let config_path = platform::get_mcp_config_file_path();
     let content = serde_json::to_string_pretty(configs)
         .map_err(|e| format!("Failed to serialize MCP config: {}", e))?;
-    
+
     std::fs::write(&config_path, content)
         .map_err(|e| format!("Failed to write mcps.json: {}", e))?;
-    
+
     // 2. Sync enabled servers to system mcporter config (~/.mcporter/mcporter.json)
     if let Err(e) = sync_to_mcporter(configs) {
         warn!("Failed to sync to mcporter: {}", e);
         // Don't fail the whole save operation if sync fails
     }
-    
+
     Ok(())
 }
 
@@ -1038,8 +1096,7 @@ fn sync_to_mcporter(configs: &HashMap<String, MCPConfig>) -> Result<(), String> 
     let mut root_val: serde_json::Value = if path.exists() {
         let content = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read mcporter.json: {}", e))?;
-        serde_json::from_str(&content)
-            .unwrap_or_else(|_| serde_json::json!({ "mcpServers": {} }))
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({ "mcpServers": {} }))
     } else {
         serde_json::json!({ "mcpServers": {} })
     };
@@ -1058,25 +1115,25 @@ fn sync_to_mcporter(configs: &HashMap<String, MCPConfig>) -> Result<(), String> 
             // Note: We skip 'enabled' field as mcporter doesn't use it (presence = enabled)
             let mut server_val = serde_json::to_value(config)
                 .map_err(|e| format!("Failed to serialize config for {}: {}", name, e))?;
-            
+
             if let Some(obj) = server_val.as_object_mut() {
                 obj.remove("enabled");
             }
-            
+
             mcp_servers_obj.insert(name.clone(), server_val);
         } else {
             // Remove disabled servers if they were previously synced
             mcp_servers_obj.remove(name);
         }
     }
-    
+
     // Important: We do NOT remove servers that are in mcporter but NOT in Manager,
     // to respect user's manual edits or other tools. We only manage the ones we know about.
 
     // Write back
     let new_content = serde_json::to_string_pretty(&root_val)
         .map_err(|e| format!("Failed to serialize mcporter config: {}", e))?;
-    
+
     std::fs::write(path, new_content)
         .map_err(|e| format!("Failed to write mcporter.json: {}", e))?;
 
@@ -1087,23 +1144,20 @@ fn sync_to_mcporter(configs: &HashMap<String, MCPConfig>) -> Result<(), String> 
 #[command]
 pub async fn get_mcp_config() -> Result<HashMap<String, MCPConfig>, String> {
     info!("[MCP Config] Getting MCP configuration...");
-    
+
     let configs = load_mcp_config_file()?;
-        
+
     info!("[MCP Config] Found {} MCP servers", configs.len());
     Ok(configs)
 }
 
 /// Save MCP configuration
 #[command]
-pub async fn save_mcp_config(
-    name: String,
-    config: Option<MCPConfig>,
-) -> Result<String, String> {
+pub async fn save_mcp_config(name: String, config: Option<MCPConfig>) -> Result<String, String> {
     info!("[Save MCP] Saving MCP configuration for: {}", name);
-    
+
     let mut configs = load_mcp_config_file()?;
-    
+
     if let Some(mcp) = config {
         configs.insert(name.clone(), mcp);
         info!("[Save MCP] Updated configuration for {}", name);
@@ -1111,7 +1165,7 @@ pub async fn save_mcp_config(
         configs.remove(&name);
         info!("[Save MCP] Deleted configuration for {}", name);
     }
-    
+
     save_mcp_config_file(&configs)?;
     Ok(format!("MCP configuration saved for {}", name))
 }
@@ -1149,7 +1203,10 @@ pub async fn install_mcp_from_git(url: String) -> Result<String, String> {
 
     // Remove existing directory if present (re-install)
     if std::path::Path::new(&install_path).exists() {
-        info!("[MCP Install] Removing existing installation at {}", install_path);
+        info!(
+            "[MCP Install] Removing existing installation at {}",
+            install_path
+        );
         std::fs::remove_dir_all(&install_path)
             .map_err(|e| format!("Failed to remove existing directory: {}", e))?;
     }
@@ -1167,7 +1224,11 @@ pub async fn install_mcp_from_git(url: String) -> Result<String, String> {
 
     // Step 2: npm install
     info!("[MCP Install] Running npm install...");
-    let npm_cmd = if platform::is_windows() { "npm.cmd" } else { "npm" };
+    let npm_cmd = if platform::is_windows() {
+        "npm.cmd"
+    } else {
+        "npm"
+    };
 
     let mut npm_install = std::process::Command::new(npm_cmd);
     npm_install.args(&["install"]).current_dir(&install_path);
@@ -1178,7 +1239,8 @@ pub async fn install_mcp_from_git(url: String) -> Result<String, String> {
         npm_install.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
 
-    let install_output = npm_install.output()
+    let install_output = npm_install
+        .output()
         .map_err(|e| format!("Failed to run npm install: {}", e))?;
 
     if !install_output.status.success() {
@@ -1198,12 +1260,16 @@ pub async fn install_mcp_from_git(url: String) -> Result<String, String> {
         npm_build.creation_flags(0x08000000);
     }
 
-    let build_output = npm_build.output()
+    let build_output = npm_build
+        .output()
         .map_err(|e| format!("Failed to run npm run build: {}", e))?;
 
     if !build_output.status.success() {
         let stderr = String::from_utf8_lossy(&build_output.stderr);
-        warn!("[MCP Install] npm run build failed (may not have a build step): {}", stderr);
+        warn!(
+            "[MCP Install] npm run build failed (may not have a build step): {}",
+            stderr
+        );
         // Don't fail — some MCPs don't need a build step
     } else {
         info!("[MCP Install] npm run build successful");
@@ -1235,13 +1301,16 @@ pub async fn install_mcp_from_git(url: String) -> Result<String, String> {
         }
     };
 
-    configs.insert(repo_name.clone(), MCPConfig {
-        command: "node".to_string(),
-        args: vec![entry_point, "--stdio".to_string()],
-        env: HashMap::new(),
-        url: String::new(),
-        enabled: true,
-    });
+    configs.insert(
+        repo_name.clone(),
+        MCPConfig {
+            command: "node".to_string(),
+            args: vec![entry_point, "--stdio".to_string()],
+            env: HashMap::new(),
+            url: String::new(),
+            enabled: true,
+        },
+    );
 
     save_mcp_config_file(&configs)?;
     info!("[MCP Install] Installation complete for {}", repo_name);
@@ -1290,7 +1359,11 @@ pub async fn check_mcporter_installed() -> Result<bool, String> {
 pub async fn install_mcporter() -> Result<String, String> {
     info!("[mcporter] Installing mcporter globally via npm...");
 
-    let npm_cmd = if platform::is_windows() { "npm.cmd" } else { "npm" };
+    let npm_cmd = if platform::is_windows() {
+        "npm.cmd"
+    } else {
+        "npm"
+    };
 
     let mut cmd = std::process::Command::new(npm_cmd);
     cmd.args(&["install", "-g", "mcporter"]);
@@ -1301,7 +1374,8 @@ pub async fn install_mcporter() -> Result<String, String> {
         cmd.creation_flags(0x08000000);
     }
 
-    let output = cmd.output()
+    let output = cmd
+        .output()
         .map_err(|e| format!("Failed to run npm install: {}", e))?;
 
     if !output.status.success() {
@@ -1371,16 +1445,16 @@ pub async fn openclaw_config_set(key: String, value: String) -> Result<String, S
 #[command]
 pub async fn validate_openclaw_config(config_json: String) -> Result<String, String> {
     info!("[Config CLI] Validating config json");
-    
+
     // Create a temporary file
     let temp_dir = std::env::temp_dir();
     let temp_file = temp_dir.join(format!("openclaw_config_{}.json", std::process::id()));
-    
+
     std::fs::write(&temp_file, &config_json)
         .map_err(|e| format!("Failed to write temp config file: {}", e))?;
 
     let temp_file_str = temp_file.to_string_lossy().to_string();
-    
+
     let openclaw_path = crate::utils::shell::get_openclaw_path().ok_or_else(|| {
         let _ = std::fs::remove_file(&temp_file);
         "Cannot find openclaw command".to_string()
@@ -1390,7 +1464,7 @@ pub async fn validate_openclaw_config(config_json: String) -> Result<String, Str
     cmd.args(&["config", "validate", "--json"]);
     cmd.env("OPENCLAW_CONFIG", &temp_file_str);
     cmd.env("PATH", crate::utils::shell::get_extended_path());
-    
+
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -1416,8 +1490,16 @@ pub async fn validate_openclaw_config(config_json: String) -> Result<String, Str
 
 /// Test an MCP server connectivity
 #[command]
-pub async fn test_mcp_server(server_type: String, target: String, command: Option<String>, args: Option<Vec<String>>) -> Result<String, String> {
-    info!("[MCP Test] Testing MCP server: type={}, target={}", server_type, target);
+pub async fn test_mcp_server(
+    server_type: String,
+    target: String,
+    command: Option<String>,
+    args: Option<Vec<String>>,
+) -> Result<String, String> {
+    info!(
+        "[MCP Test] Testing MCP server: type={}, target={}",
+        server_type, target
+    );
 
     if server_type == "url" {
         // Remote HTTP MCP: POST an MCP initialize request to the URL
@@ -1443,13 +1525,21 @@ pub async fn test_mcp_server(server_type: String, target: String, command: Optio
                 let output_str = String::from_utf8_lossy(&out.stdout).to_string();
                 let lines: Vec<&str> = output_str.trim().lines().collect();
                 let status_code = lines.last().unwrap_or(&"0");
-                let body = if lines.len() > 1 { lines[..lines.len()-1].join("\n") } else { String::new() };
+                let body = if lines.len() > 1 {
+                    lines[..lines.len() - 1].join("\n")
+                } else {
+                    String::new()
+                };
 
                 if status_code.starts_with("2") {
                     // Try to extract server name from JSON response
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
                         if let Some(name) = json.pointer("/result/serverInfo/name") {
-                            return Ok(format!("✅ Server reachable: {} (HTTP {})", name.as_str().unwrap_or("unknown"), status_code));
+                            return Ok(format!(
+                                "✅ Server reachable: {} (HTTP {})",
+                                name.as_str().unwrap_or("unknown"),
+                                status_code
+                            ));
                         }
                     }
                     // Try to parse SSE response for server info
@@ -1458,7 +1548,11 @@ pub async fn test_mcp_server(server_type: String, target: String, command: Optio
                             let data = line.trim_start_matches("data:").trim();
                             if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
                                 if let Some(name) = json.pointer("/result/serverInfo/name") {
-                                    return Ok(format!("✅ Server reachable: {} (HTTP {})", name.as_str().unwrap_or("unknown"), status_code));
+                                    return Ok(format!(
+                                        "✅ Server reachable: {} (HTTP {})",
+                                        name.as_str().unwrap_or("unknown"),
+                                        status_code
+                                    ));
                                 }
                             }
                         }
@@ -1468,17 +1562,17 @@ pub async fn test_mcp_server(server_type: String, target: String, command: Optio
                     Err(format!("❌ Server returned HTTP {}", status_code))
                 }
             }
-            Err(e) => Err(format!("Failed to test URL: {}", e))
+            Err(e) => Err(format!("Failed to test URL: {}", e)),
         }
     } else {
         // Local stdio MCP: spawn the command directly with proper args
         let cmd_name = command.unwrap_or(target.clone());
         let cmd_args = args.unwrap_or_default();
-        
+
         info!("[MCP Test] Spawning: {} {:?}", cmd_name, cmd_args);
 
         let extended_path = shell::get_extended_path();
-        
+
         // On Windows, use cmd /c to resolve .cmd files (npx.cmd, node.cmd, etc.)
         #[cfg(windows)]
         let mut cmd = {
@@ -1512,32 +1606,49 @@ pub async fn test_mcp_server(server_type: String, target: String, command: Optio
                 if let Some(ref mut stdin) = child.stdin {
                     use std::io::Write;
                     let init_msg = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}"#;
-                    let _ = writeln!(stdin, "Content-Length: {}\r\n\r\n{}", init_msg.len(), init_msg);
+                    let _ = writeln!(
+                        stdin,
+                        "Content-Length: {}\r\n\r\n{}",
+                        init_msg.len(),
+                        init_msg
+                    );
                 }
-                
+
                 // Wait briefly then check
                 std::thread::sleep(std::time::Duration::from_millis(3000));
-                
+
                 match child.try_wait() {
                     Ok(Some(status)) => {
                         // Process exited — read stderr for error info
-                        let stderr = child.stderr.take().map(|mut s| {
-                            let mut buf = String::new();
-                            use std::io::Read;
-                            let _ = s.read_to_string(&mut buf);
-                            buf
-                        }).unwrap_or_default();
-                        
+                        let stderr = child
+                            .stderr
+                            .take()
+                            .map(|mut s| {
+                                let mut buf = String::new();
+                                use std::io::Read;
+                                let _ = s.read_to_string(&mut buf);
+                                buf
+                            })
+                            .unwrap_or_default();
+
                         if status.success() {
                             Ok("✅ Server process started and exited cleanly".to_string())
                         } else {
-                            Err(format!("❌ Server exited with {}\n{}", status, stderr.trim()))
+                            Err(format!(
+                                "❌ Server exited with {}\n{}",
+                                status,
+                                stderr.trim()
+                            ))
                         }
                     }
                     Ok(None) => {
                         // Still running — good! Kill it and report success
                         let _ = child.kill();
-                        Ok(format!("✅ Server is running (process started successfully)\nCommand: {} {}", cmd_name, cmd_args.join(" ")))
+                        Ok(format!(
+                            "✅ Server is running (process started successfully)\nCommand: {} {}",
+                            cmd_name,
+                            cmd_args.join(" ")
+                        ))
                     }
                     Err(e) => {
                         let _ = child.kill();
@@ -1545,9 +1656,12 @@ pub async fn test_mcp_server(server_type: String, target: String, command: Optio
                     }
                 }
             }
-            Err(e) => {
-                Err(format!("❌ Failed to start server: {}\nCommand: {} {}", e, cmd_name, cmd_args.join(" ")))
-            }
+            Err(e) => Err(format!(
+                "❌ Failed to start server: {}\nCommand: {} {}",
+                e,
+                cmd_name,
+                cmd_args.join(" ")
+            )),
         }
     }
 }
@@ -1659,7 +1773,10 @@ pub async fn get_channels_config() -> Result<Vec<ChannelConfig>, String> {
         });
     }
 
-    info!("[Channel Config] Returned {} channel configurations", channels.len());
+    info!(
+        "[Channel Config] Returned {} channel configurations",
+        channels.len()
+    );
     for ch in &channels {
         debug!("[Channel Config] - {}: enabled={}", ch.id, ch.enabled);
     }
@@ -1679,7 +1796,10 @@ pub async fn save_channel_config(channel: ChannelConfig) -> Result<String, Strin
     debug!("[Save Channel Config] Environment file path: {}", env_path);
 
     // DEBUG: Log received keys
-    info!("[Save Channel Config] Config keys: {:?}", channel.config.keys());
+    info!(
+        "[Save Channel Config] Config keys: {:?}",
+        channel.config.keys()
+    );
 
     // Ensure channels object exists
     if config.get("channels").is_none() {
@@ -1703,21 +1823,28 @@ pub async fn save_channel_config(channel: ChannelConfig) -> Result<String, Strin
     let test_only_fields = vec!["userId", "testChatId", "testChannelId"];
 
     // Update channels configuration - MERGE with existing
-    if let Some(existing_channel) = config["channels"].get_mut(&channel.id).and_then(|v| v.as_object_mut()) {
+    if let Some(existing_channel) = config["channels"]
+        .get_mut(&channel.id)
+        .and_then(|v| v.as_object_mut())
+    {
         existing_channel.insert("enabled".to_string(), json!(true));
-        
+
         // Clean up legacy invalid keys
         existing_channel.remove("pairing");
         existing_channel.remove("allowlist");
 
         for (key, value) in &channel.config {
             if test_only_fields.contains(&key.as_str()) {
-                let env_key = format!("OPENCLAW_{}_{}", channel.id.to_uppercase(), key.to_uppercase());
+                let env_key = format!(
+                    "OPENCLAW_{}_{}",
+                    channel.id.to_uppercase(),
+                    key.to_uppercase()
+                );
                 if let Some(val_str) = value.as_str() {
                     let _ = file::set_env_value(&env_path, &env_key, val_str);
                 }
             } else {
-                 existing_channel.insert(key.clone(), value.clone());
+                existing_channel.insert(key.clone(), value.clone());
             }
         }
     } else {
@@ -1725,7 +1852,11 @@ pub async fn save_channel_config(channel: ChannelConfig) -> Result<String, Strin
 
         for (key, value) in &channel.config {
             if test_only_fields.contains(&key.as_str()) {
-                let env_key = format!("OPENCLAW_{}_{}", channel.id.to_uppercase(), key.to_uppercase());
+                let env_key = format!(
+                    "OPENCLAW_{}_{}",
+                    channel.id.to_uppercase(),
+                    key.to_uppercase()
+                );
                 if let Some(val_str) = value.as_str() {
                     let _ = file::set_env_value(&env_path, &env_key, val_str);
                 }
@@ -1737,7 +1868,10 @@ pub async fn save_channel_config(channel: ChannelConfig) -> Result<String, Strin
     }
 
     // Cleanup legacy attempts
-    if let Some(plugin_entry) = config["plugins"]["entries"].get_mut(&channel.id).and_then(|v| v.as_object_mut()) {
+    if let Some(plugin_entry) = config["plugins"]["entries"]
+        .get_mut(&channel.id)
+        .and_then(|v| v.as_object_mut())
+    {
         plugin_entry.remove("allowlist");
         plugin_entry.remove("pairing");
     }
@@ -1766,7 +1900,10 @@ pub async fn save_channel_config(channel: ChannelConfig) -> Result<String, Strin
 /// Clear channel configuration - delete specified channel configuration from openclaw.json
 #[command]
 pub async fn clear_channel_config(channel_id: String) -> Result<String, String> {
-    info!("[Clear Channel Config] Clearing channel configuration: {}", channel_id);
+    info!(
+        "[Clear Channel Config] Clearing channel configuration: {}",
+        channel_id
+    );
 
     let mut config = load_openclaw_config()?;
     let env_path = platform::get_env_file_path();
@@ -1774,19 +1911,34 @@ pub async fn clear_channel_config(channel_id: String) -> Result<String, String> 
     // Delete channel from channels object
     if let Some(channels) = config.get_mut("channels").and_then(|v| v.as_object_mut()) {
         channels.remove(&channel_id);
-        info!("[Clear Channel Config] Deleted from channels: {}", channel_id);
+        info!(
+            "[Clear Channel Config] Deleted from channels: {}",
+            channel_id
+        );
     }
 
     // Delete from plugins.allow array
-    if let Some(allow_arr) = config.pointer_mut("/plugins/allow").and_then(|v| v.as_array_mut()) {
+    if let Some(allow_arr) = config
+        .pointer_mut("/plugins/allow")
+        .and_then(|v| v.as_array_mut())
+    {
         allow_arr.retain(|v| v.as_str() != Some(&channel_id));
-        info!("[Clear Channel Config] Deleted from plugins.allow: {}", channel_id);
+        info!(
+            "[Clear Channel Config] Deleted from plugins.allow: {}",
+            channel_id
+        );
     }
 
     // Delete from plugins.entries
-    if let Some(entries) = config.pointer_mut("/plugins/entries").and_then(|v| v.as_object_mut()) {
+    if let Some(entries) = config
+        .pointer_mut("/plugins/entries")
+        .and_then(|v| v.as_object_mut())
+    {
         entries.remove(&channel_id);
-        info!("[Clear Channel Config] Deleted from plugins.entries: {}", channel_id);
+        info!(
+            "[Clear Channel Config] Deleted from plugins.entries: {}",
+            channel_id
+        );
     }
 
     // Clear related environment variables
@@ -1802,7 +1954,10 @@ pub async fn clear_channel_config(channel_id: String) -> Result<String, String> 
     // Save configuration
     match save_openclaw_config(&config) {
         Ok(_) => {
-            info!("[Clear Channel Config] {} configuration cleared", channel_id);
+            info!(
+                "[Clear Channel Config] {} configuration cleared",
+                channel_id
+            );
             Ok(format!("{} configuration cleared", channel_id))
         }
         Err(e) => {
@@ -1843,79 +1998,139 @@ pub async fn get_telegram_accounts() -> Result<Vec<TelegramAccount>, String> {
     let mut accounts = Vec::new();
 
     // Check for multi-account structure: channels.telegram.accounts
-    if let Some(accts) = config.pointer("/channels/telegram/accounts").and_then(|v| v.as_object()) {
+    if let Some(accts) = config
+        .pointer("/channels/telegram/accounts")
+        .and_then(|v| v.as_object())
+    {
         for (id, acct_val) in accts {
             accounts.push(TelegramAccount {
                 id: id.to_lowercase().replace(' ', "-"),
-                bot_token: acct_val.get("botToken").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                group_policy: acct_val.get("groupPolicy").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                dm_policy: acct_val.get("dmPolicy").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                stream_mode: acct_val.get("streamMode").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                bot_token: acct_val
+                    .get("botToken")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                group_policy: acct_val
+                    .get("groupPolicy")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                dm_policy: acct_val
+                    .get("dmPolicy")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                stream_mode: acct_val
+                    .get("streamMode")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 exclusive_topics: {
                     // Re-infer exclusive topics from group config
                     // Logic: If a group has requireMention=true and specific topics have requireMention=false, those are exclusive topics.
                     let mut inferred_topics = Vec::new();
                     if let Some(groups_map) = acct_val.get("groups").and_then(|g| g.as_object()) {
                         for (_, group_val) in groups_map {
-                             // Check if group is muted (requireMention=true)
-                             if group_val.get("requireMention").and_then(|v| v.as_bool()).unwrap_or(false) {
-                                 if let Some(topics_map) = group_val.get("topics").and_then(|t| t.as_object()) {
-                                     for (tid, tval) in topics_map {
-                                         // Check if topic is unmuted (requireMention=false)
-                                         if !tval.get("requireMention").and_then(|v| v.as_bool()).unwrap_or(true) {
-                                             inferred_topics.push(tid.clone());
-                                         }
-                                     }
-                                 }
-                             }
+                            // Check if group is muted (requireMention=true)
+                            if group_val
+                                .get("requireMention")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false)
+                            {
+                                if let Some(topics_map) =
+                                    group_val.get("topics").and_then(|t| t.as_object())
+                                {
+                                    for (tid, tval) in topics_map {
+                                        // Check if topic is unmuted (requireMention=false)
+                                        if !tval
+                                            .get("requireMention")
+                                            .and_then(|v| v.as_bool())
+                                            .unwrap_or(true)
+                                        {
+                                            inferred_topics.push(tid.clone());
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                    if inferred_topics.is_empty() { None } else { Some(inferred_topics) }
+                    if inferred_topics.is_empty() {
+                        None
+                    } else {
+                        Some(inferred_topics)
+                    }
                 },
                 groups: acct_val.get("groups").cloned(),
                 primary: None, // Will be set below
-                allow_from: acct_val.get("allowFrom")
+                allow_from: acct_val
+                    .get("allowFrom")
                     .and_then(|v| v.as_array())
-                    .map(|arr| arr.iter().filter_map(|v| {
-                        if let Some(s) = v.as_str() { Some(s.to_string()) }
-                        else if let Some(n) = v.as_i64() { Some(n.to_string()) }
-                        else { None }
-                    }).collect()),
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| {
+                                if let Some(s) = v.as_str() {
+                                    Some(s.to_string())
+                                } else if let Some(n) = v.as_i64() {
+                                    Some(n.to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
+                    }),
             });
         }
     }
 
     // Fallback: single-bot config (botToken at top level)
     if accounts.is_empty() {
-        if let Some(token) = config.pointer("/channels/telegram/botToken").and_then(|v| v.as_str()) {
+        if let Some(token) = config
+            .pointer("/channels/telegram/botToken")
+            .and_then(|v| v.as_str())
+        {
             if !token.is_empty() {
                 accounts.push(TelegramAccount {
                     id: "default".to_string(),
                     bot_token: token.to_string(),
-                    group_policy: config.pointer("/channels/telegram/groupPolicy").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    dm_policy: config.pointer("/channels/telegram/dmPolicy").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    stream_mode: config.pointer("/channels/telegram/streamMode").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                    group_policy: config
+                        .pointer("/channels/telegram/groupPolicy")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
+                    dm_policy: config
+                        .pointer("/channels/telegram/dmPolicy")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
+                    stream_mode: config
+                        .pointer("/channels/telegram/streamMode")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
                     exclusive_topics: None,
                     groups: config.pointer("/channels/telegram/groups").cloned(),
                     primary: None,
-                    allow_from: config.pointer("/channels/telegram/allowFrom")
+                    allow_from: config
+                        .pointer("/channels/telegram/allowFrom")
                         .and_then(|v| v.as_array())
-                        .map(|arr| arr.iter().filter_map(|v| {
-                            if let Some(s) = v.as_str() { Some(s.to_string()) }
-                            else if let Some(n) = v.as_i64() { Some(n.to_string()) }
-                            else { None }
-                        }).collect()),
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| {
+                                    if let Some(s) = v.as_str() {
+                                        Some(s.to_string())
+                                    } else if let Some(n) = v.as_i64() {
+                                        Some(n.to_string())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect()
+                        }),
                 });
             }
         }
     }
 
-
-
     // Load primary bot account from manager.json (safe from Core schema)
     let manager_config = load_manager_config().unwrap_or(json!({}));
-    let primary_account_id = manager_config.pointer("/primaryBotAccount").and_then(|v: &Value| v.as_str());
-    
+    let primary_account_id = manager_config
+        .pointer("/primaryBotAccount")
+        .and_then(|v: &Value| v.as_str());
+
     if let Some(pid) = primary_account_id {
         for acct in &mut accounts {
             if acct.id == pid {
@@ -1952,7 +2167,11 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     }
 
     // Migrate single-bot to accounts if this is the first additional account
-    if let Some(top_token) = config["channels"]["telegram"].get("botToken").and_then(|v| v.as_str()).map(|s| s.to_string()) {
+    if let Some(top_token) = config["channels"]["telegram"]
+        .get("botToken")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+    {
         if !top_token.is_empty() {
             // Move existing single-bot config to accounts["default"]
             let mut existing = json!({
@@ -1967,12 +2186,15 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
             if let Some(allow_from) = config["channels"]["telegram"].get("allowFrom").cloned() {
                 existing["allowFrom"] = allow_from;
             }
-             if let Some(group_allow_from) = config["channels"]["telegram"].get("groupAllowFrom").cloned() {
+            if let Some(group_allow_from) = config["channels"]["telegram"]
+                .get("groupAllowFrom")
+                .cloned()
+            {
                 existing["groupAllowFrom"] = group_allow_from;
             }
 
             config["channels"]["telegram"]["accounts"]["default"] = existing;
-            
+
             // Remove top-level single-bot fields
             if let Some(tg) = config["channels"]["telegram"].as_object_mut() {
                 tg.remove("botToken");
@@ -2001,7 +2223,10 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     }
 
     // Save allowFrom (DM user IDs) — handled independently of dm_policy
-    info!("[Telegram Accounts] allow_from received: {:?}", account.allow_from);
+    info!(
+        "[Telegram Accounts] allow_from received: {:?}",
+        account.allow_from
+    );
     let dm_policy_str = account.dm_policy.as_deref().unwrap_or("");
     if dm_policy_str == "open" {
         // dmPolicy="open" requires allowFrom to include "*"
@@ -2009,9 +2234,16 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     } else if let Some(ref af) = account.allow_from {
         if !af.is_empty() {
             // Convert string IDs to numbers where possible for Core compatibility
-            let allow_vals: Vec<serde_json::Value> = af.iter().map(|id| {
-                if let Ok(n) = id.parse::<i64>() { json!(n) } else { json!(id) }
-            }).collect();
+            let allow_vals: Vec<serde_json::Value> = af
+                .iter()
+                .map(|id| {
+                    if let Ok(n) = id.parse::<i64>() {
+                        json!(n)
+                    } else {
+                        json!(id)
+                    }
+                })
+                .collect();
             info!("[Telegram Accounts] Saving allowFrom: {:?}", allow_vals);
             acct_obj["allowFrom"] = json!(allow_vals);
         }
@@ -2025,9 +2257,13 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
         if let Some(pid) = primary_id {
             if pid != account_id {
                 // Read primary account's allowFrom
-                if let Some(primary_allow) = config.pointer(&format!("/channels/telegram/accounts/{}/allowFrom", pid))
-                    .and_then(|v| v.as_array()) {
-                    if !primary_allow.is_empty() && primary_allow.iter().any(|v| v.as_str() != Some("*")) {
+                if let Some(primary_allow) = config
+                    .pointer(&format!("/channels/telegram/accounts/{}/allowFrom", pid))
+                    .and_then(|v| v.as_array())
+                {
+                    if !primary_allow.is_empty()
+                        && primary_allow.iter().any(|v| v.as_str() != Some("*"))
+                    {
                         acct_obj["allowFrom"] = json!(primary_allow);
                     }
                 }
@@ -2045,7 +2281,7 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     // Update meta.primaryBotAccount
     // Update primaryBotAccount in manager.json (to avoid schema validation errors in Core)
     let mut manager_config = load_manager_config().unwrap_or(json!({}));
-    
+
     if account.primary == Some(true) {
         manager_config["primaryBotAccount"] = json!(account_id);
 
@@ -2082,7 +2318,7 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
             // Create agentDir path: ~/.openclaw/agents/main/agent
             let main_agent_dir = std::path::Path::new(&openclaw_home).join("agents").join("main").join("agent");
             let main_agent_dir_str = main_agent_dir.to_string_lossy().to_string().replace('\\', "/");
-            
+
             let main_agent = json!({
                 "id": "main",
                 "name": "General",
@@ -2092,7 +2328,7 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
                 "model": { "primary": "glm/glm-5" }
             });
             agents_list.push(main_agent);
-            
+
             // Auto-create workspace directory
              if let Err(e) = std::fs::create_dir_all(&main_workspace) {
                  error!("[Telegram Accounts] Failed to create main workspace: {}", e);
@@ -2113,7 +2349,7 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
                  let _ = std::fs::write(main_workspace.join("AGENTS.md"), "# Agent Instructions\n\nBe helpful.");
                  let _ = std::fs::write(main_workspace.join("IDENTITY.md"), "name: Primary\nemoji: 🦞");
             }
-            
+
             // Save updated agents list
              if config.get("agents").is_none() { config["agents"] = json!({}); }
             config["agents"]["list"] = json!(agents_list);
@@ -2125,7 +2361,7 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
         } else {
             Vec::new()
         };
-        
+
         // Remove any existing binding for "main" agent to avoid duplicates/conflicts?
         // Or check if it already points to this account.
         let mut binding_exists = false;
@@ -2154,17 +2390,18 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
         config["bindings"] = json!(bindings);
         */
         // --- END NEW LOGIC ---
-
     } else {
         // If we are saving this account and it is NOT primary, check if it WAS the primary account
-        let current_primary = manager_config.pointer("/primaryBotAccount").and_then(|v| v.as_str());
+        let current_primary = manager_config
+            .pointer("/primaryBotAccount")
+            .and_then(|v| v.as_str());
         if current_primary == Some(account_id.as_str()) {
             if let Some(obj) = manager_config.as_object_mut() {
                 obj.remove("primaryBotAccount");
             }
         }
     }
-    
+
     if let Err(e) = save_manager_config(&manager_config) {
         error!("[Telegram Accounts] Failed to save manager config: {}", e);
         // Continue anyway, as we still want to save the account config
@@ -2180,16 +2417,16 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     // 1. Set group-level requireMention = true (default behavior: ignore everything)
     // 2. Set topic-level requireMention = false for whitelisted topics (exception: auto-reply)
     let mut groups_json = account.groups.clone();
-    
+
     if let Some(exclusive_topics) = &account.exclusive_topics {
         if !exclusive_topics.is_empty() {
-             // We also save the raw list so the UI can reload it (using a hidden field or relying on inference)
-             // However, OpenClaw core rejects unknown fields. So we must ONLY output valid config.
-             // Strategy: The UI will need to infer exclusive topics from the config structure if we can't save the field.
-             // OR: We save it as a comment? No, JSON doesn't support comments.
-             // COMPROMISE: We will NOT save "exclusiveTopics" to the file to avoid validation errors.
-             // The UI will have to populate the field by checking if a group has topics configured.
-             // For now, let's just apply the logic to the groups logic.
+            // We also save the raw list so the UI can reload it (using a hidden field or relying on inference)
+            // However, OpenClaw core rejects unknown fields. So we must ONLY output valid config.
+            // Strategy: The UI will need to infer exclusive topics from the config structure if we can't save the field.
+            // OR: We save it as a comment? No, JSON doesn't support comments.
+            // COMPROMISE: We will NOT save "exclusiveTopics" to the file to avoid validation errors.
+            // The UI will have to populate the field by checking if a group has topics configured.
+            // For now, let's just apply the logic to the groups logic.
 
             if let Some(groups_map) = groups_json.as_mut().and_then(|g| g.as_object_mut()) {
                 for (_, group_val) in groups_map.iter_mut() {
@@ -2210,17 +2447,34 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
                         // 3. Explicitly block topics owned by OTHER bot accounts
                         //    This prevents cross-talk when OpenClaw core doesn't
                         //    fall back to group-level requireMention for unlisted topics.
-                        if let Some(all_accts) = config.pointer("/channels/telegram/accounts").and_then(|v| v.as_object()) {
+                        if let Some(all_accts) = config
+                            .pointer("/channels/telegram/accounts")
+                            .and_then(|v| v.as_object())
+                        {
                             for (other_id, other_val) in all_accts {
-                                if other_id == &account.id { continue; }
-                                if let Some(other_groups) = other_val.get("groups").and_then(|g| g.as_object()) {
+                                if other_id == &account.id {
+                                    continue;
+                                }
+                                if let Some(other_groups) =
+                                    other_val.get("groups").and_then(|g| g.as_object())
+                                {
                                     for (_, other_group) in other_groups {
-                                        if let Some(other_topics) = other_group.get("topics").and_then(|t| t.as_object()) {
+                                        if let Some(other_topics) =
+                                            other_group.get("topics").and_then(|t| t.as_object())
+                                        {
                                             for (other_tid, _) in other_topics {
-                                                if !exclusive_topics.contains(other_tid) && !topics_map.contains_key(other_tid) {
+                                                if !exclusive_topics.contains(other_tid)
+                                                    && !topics_map.contains_key(other_tid)
+                                                {
                                                     let mut block_config = serde_json::Map::new();
-                                                    block_config.insert("requireMention".to_string(), json!(true));
-                                                    topics_map.insert(other_tid.clone(), json!(block_config));
+                                                    block_config.insert(
+                                                        "requireMention".to_string(),
+                                                        json!(true),
+                                                    );
+                                                    topics_map.insert(
+                                                        other_tid.clone(),
+                                                        json!(block_config),
+                                                    );
                                                 }
                                             }
                                         }
@@ -2245,13 +2499,20 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     // but the *behavior* will be correct.
     // Remove any old keys with different casing to prevent duplicates
     // e.g. if "Chronos" exists and we're saving as "chronos", remove "Chronos"
-    if let Some(accts) = config.pointer_mut("/channels/telegram/accounts").and_then(|v| v.as_object_mut()) {
-        let old_keys: Vec<String> = accts.keys()
+    if let Some(accts) = config
+        .pointer_mut("/channels/telegram/accounts")
+        .and_then(|v| v.as_object_mut())
+    {
+        let old_keys: Vec<String> = accts
+            .keys()
             .filter(|k| k.to_lowercase().replace(' ', "-") == account_id && *k != &account_id)
             .cloned()
             .collect();
         for old_key in old_keys {
-            info!("[Telegram Accounts] Removing old key '{}' (normalized to '{}')", old_key, account_id);
+            info!(
+                "[Telegram Accounts] Removing old key '{}' (normalized to '{}')",
+                old_key, account_id
+            );
             accts.remove(&old_key);
         }
     }
@@ -2261,7 +2522,8 @@ pub async fn save_telegram_account(account: TelegramAccount) -> Result<String, S
     // Ensure telegram is enabled and in plugins
     config["channels"]["telegram"]["enabled"] = json!(true);
     if config.get("plugins").is_none() {
-        config["plugins"] = json!({ "allow": ["telegram"], "entries": { "telegram": { "enabled": true } } });
+        config["plugins"] =
+            json!({ "allow": ["telegram"], "entries": { "telegram": { "enabled": true } } });
     }
 
     save_openclaw_config(&config)?;
@@ -2275,13 +2537,18 @@ pub async fn delete_telegram_account(account_id: String) -> Result<String, Strin
     info!("[Telegram Accounts] Deleting account: {}", account_id);
     let mut config = load_openclaw_config()?;
 
-    if let Some(accts) = config.pointer_mut("/channels/telegram/accounts").and_then(|v| v.as_object_mut()) {
+    if let Some(accts) = config
+        .pointer_mut("/channels/telegram/accounts")
+        .and_then(|v| v.as_object_mut())
+    {
         accts.remove(&account_id);
     }
 
     // Also clean up any bindings referencing this account
     if let Some(bindings) = config.get_mut("bindings").and_then(|v| v.as_array_mut()) {
-        bindings.retain(|b| b.pointer("/match/accountId").and_then(|v| v.as_str()) != Some(&account_id));
+        bindings.retain(|b| {
+            b.pointer("/match/accountId").and_then(|v| v.as_str()) != Some(&account_id)
+        });
     }
 
     save_openclaw_config(&config)?;
@@ -2310,9 +2577,9 @@ pub async fn check_feishu_plugin() -> Result<FeishuPluginStatus, String> {
 
             // Find line containing feishu (case-insensitive)
             let lines: Vec<&str> = output.lines().collect();
-            let feishu_line = lines.iter().find(|line| {
-                line.to_lowercase().contains("feishu")
-            });
+            let feishu_line = lines
+                .iter()
+                .find(|line| line.to_lowercase().contains("feishu"));
 
             if let Some(line) = feishu_line {
                 info!("[Feishu Plugin] Feishu plugin installed: {}", line);
@@ -2323,8 +2590,14 @@ pub async fn check_feishu_plugin() -> Result<FeishuPluginStatus, String> {
                 } else {
                     // Try to match version number pattern (e.g. 0.1.2)
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    parts.iter()
-                        .find(|p| p.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))
+                    parts
+                        .iter()
+                        .find(|p| {
+                            p.chars()
+                                .next()
+                                .map(|c| c.is_ascii_digit())
+                                .unwrap_or(false)
+                        })
                         .map(|s| s.to_string())
                 };
 
@@ -2363,7 +2636,10 @@ pub async fn install_feishu_plugin() -> Result<String, String> {
     let status = check_feishu_plugin().await?;
     if status.installed {
         info!("[Feishu Plugin] Feishu plugin already installed, skipping");
-        return Ok(format!("Feishu plugin already installed: {}", status.plugin_name.unwrap_or_default()));
+        return Ok(format!(
+            "Feishu plugin already installed: {}",
+            status.plugin_name.unwrap_or_default()
+        ));
     }
 
     // Install Feishu plugin
@@ -2377,7 +2653,10 @@ pub async fn install_feishu_plugin() -> Result<String, String> {
             let verify_status = check_feishu_plugin().await?;
             if verify_status.installed {
                 info!("[Feishu Plugin] Feishu plugin installed successfully");
-                Ok(format!("Feishu plugin installed successfully: {}", verify_status.plugin_name.unwrap_or_default()))
+                Ok(format!(
+                    "Feishu plugin installed successfully: {}",
+                    verify_status.plugin_name.unwrap_or_default()
+                ))
             } else {
                 warn!("[Feishu Plugin] Installation command succeeded but plugin not found");
                 Err("Installation command succeeded but plugin not found, please check openclaw version".to_string())
@@ -2455,7 +2734,10 @@ pub async fn get_pdf_config() -> Result<PdfConfig, String> {
     let config = load_openclaw_config()?;
     let max_pages = config.get("pdfMaxPages").and_then(|v| v.as_u64());
     let max_bytes_mb = config.get("pdfMaxBytesMb").and_then(|v| v.as_f64());
-    Ok(PdfConfig { max_pages, max_bytes_mb })
+    Ok(PdfConfig {
+        max_pages,
+        max_bytes_mb,
+    })
 }
 
 #[command]
@@ -2508,7 +2790,6 @@ pub async fn save_memory_config(memory_config: MemoryConfig) -> Result<String, S
     Ok("Memory config saved".to_string())
 }
 
-
 /// Per-agent subagent configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SubagentConfig {
@@ -2527,7 +2808,10 @@ pub struct SubagentDefaults {
     pub max_concurrent: Option<u32>,
     #[serde(alias = "attachmentsEnabled", alias = "attachments_enabled")]
     pub attachments_enabled: Option<bool>,
-    #[serde(alias = "attachmentsMaxTotalBytes", alias = "attachments_max_total_bytes")]
+    #[serde(
+        alias = "attachmentsMaxTotalBytes",
+        alias = "attachments_max_total_bytes"
+    )]
     pub attachments_max_total_bytes: Option<u64>,
 }
 
@@ -2570,19 +2854,42 @@ pub async fn get_agents_config() -> Result<AgentsConfigResponse, String> {
         // Correct format: array of { id, workspace, agentDir, model, ... }
         for agent_val in list_arr {
             agents.push(AgentInfo {
-                id: agent_val.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                name: agent_val.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                workspace: agent_val.get("workspace").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                agent_dir: agent_val.get("agentDir").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                model: agent_val.pointer("/model/primary").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                id: agent_val
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                name: agent_val
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                workspace: agent_val
+                    .get("workspace")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                agent_dir: agent_val
+                    .get("agentDir")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                model: agent_val
+                    .pointer("/model/primary")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 sandbox: agent_val.get("sandbox").and_then(|v| v.as_bool()),
-                heartbeat: agent_val.pointer("/heartbeat/every").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                heartbeat: agent_val
+                    .pointer("/heartbeat/every")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 default: agent_val.get("default").and_then(|v| v.as_bool()),
                 subagents: agent_val.get("subagents").and_then(|v| {
                     let allow = v.get("allowAgents").and_then(|a| a.as_array()).map(|arr| {
-                        arr.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect()
+                        arr.iter()
+                            .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                            .collect()
                     });
-                    Some(SubagentConfig { allow_agents: allow })
+                    Some(SubagentConfig {
+                        allow_agents: allow,
+                    })
                 }),
             });
         }
@@ -2591,39 +2898,74 @@ pub async fn get_agents_config() -> Result<AgentsConfigResponse, String> {
         for (id, agent_val) in list_obj {
             agents.push(AgentInfo {
                 id: id.clone(),
-                name: agent_val.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                workspace: agent_val.get("workspace").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                agent_dir: agent_val.get("agentDir").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                model: agent_val.pointer("/model/primary").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                name: agent_val
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                workspace: agent_val
+                    .get("workspace")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                agent_dir: agent_val
+                    .get("agentDir")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                model: agent_val
+                    .pointer("/model/primary")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 sandbox: agent_val.get("sandbox").and_then(|v| v.as_bool()),
-                heartbeat: agent_val.pointer("/heartbeat/every").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                heartbeat: agent_val
+                    .pointer("/heartbeat/every")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 default: agent_val.get("default").and_then(|v| v.as_bool()),
                 subagents: agent_val.get("subagents").and_then(|v| {
                     let allow = v.get("allowAgents").and_then(|a| a.as_array()).map(|arr| {
-                        arr.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect()
+                        arr.iter()
+                            .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                            .collect()
                     });
-                    Some(SubagentConfig { allow_agents: allow })
+                    Some(SubagentConfig {
+                        allow_agents: allow,
+                    })
                 }),
             });
         }
     }
 
     // Read bindings — check top-level first (correct), then agents.bindings (legacy)
-    let bindings_arr = config.get("bindings").and_then(|v| v.as_array())
-        .or_else(|| config.pointer("/agents/bindings").and_then(|v| v.as_array()));
-    
+    let bindings_arr = config
+        .get("bindings")
+        .and_then(|v| v.as_array())
+        .or_else(|| {
+            config
+                .pointer("/agents/bindings")
+                .and_then(|v| v.as_array())
+        });
+
     if let Some(bindings_arr) = bindings_arr {
         for binding_val in bindings_arr {
             let empty_match = json!({});
             let match_obj = binding_val.get("match").unwrap_or(&empty_match);
-            
+
             bindings.push(AgentBinding {
-                agent_id: binding_val.get("agentId").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                agent_id: binding_val
+                    .get("agentId")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
                 match_rule: MatchRule {
-                    channel: match_obj.get("channel").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    account_id: match_obj.get("accountId").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                    channel: match_obj
+                        .get("channel")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
+                    account_id: match_obj
+                        .get("accountId")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
                     peer: match_obj.get("peer").cloned(),
-                }
+                },
             });
         }
     }
@@ -2631,24 +2973,49 @@ pub async fn get_agents_config() -> Result<AgentsConfigResponse, String> {
     // Read global subagent defaults from agents.defaults.subagents and tools.sessions_spawn.attachments
     let subagent_defaults = if let Some(sub_val) = config.pointer("/agents/defaults/subagents") {
         SubagentDefaults {
-            max_spawn_depth: sub_val.get("maxSpawnDepth").and_then(|v| v.as_u64()).map(|v| v as u32),
-            max_children_per_agent: sub_val.get("maxChildrenPerAgent").and_then(|v| v.as_u64()).map(|v| v as u32),
-            max_concurrent: sub_val.get("maxConcurrent").and_then(|v| v.as_u64()).map(|v| v as u32),
-            attachments_enabled: config.pointer("/tools/sessions_spawn/attachments/enabled").and_then(|v| v.as_bool()),
-            attachments_max_total_bytes: config.pointer("/tools/sessions_spawn/attachments/maxTotalBytes").and_then(|v| v.as_u64()),
+            max_spawn_depth: sub_val
+                .get("maxSpawnDepth")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            max_children_per_agent: sub_val
+                .get("maxChildrenPerAgent")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            max_concurrent: sub_val
+                .get("maxConcurrent")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            attachments_enabled: config
+                .pointer("/tools/sessions_spawn/attachments/enabled")
+                .and_then(|v| v.as_bool()),
+            attachments_max_total_bytes: config
+                .pointer("/tools/sessions_spawn/attachments/maxTotalBytes")
+                .and_then(|v| v.as_u64()),
         }
     } else {
         SubagentDefaults {
             max_spawn_depth: None,
             max_children_per_agent: None,
             max_concurrent: None,
-            attachments_enabled: config.pointer("/tools/sessions_spawn/attachments/enabled").and_then(|v| v.as_bool()),
-            attachments_max_total_bytes: config.pointer("/tools/sessions_spawn/attachments/maxTotalBytes").and_then(|v| v.as_u64()),
+            attachments_enabled: config
+                .pointer("/tools/sessions_spawn/attachments/enabled")
+                .and_then(|v| v.as_bool()),
+            attachments_max_total_bytes: config
+                .pointer("/tools/sessions_spawn/attachments/maxTotalBytes")
+                .and_then(|v| v.as_u64()),
         }
     };
 
-    info!("[Agents] Found {} agents, {} bindings", agents.len(), bindings.len());
-    Ok(AgentsConfigResponse { agents, bindings, subagent_defaults })
+    info!(
+        "[Agents] Found {} agents, {} bindings",
+        agents.len(),
+        bindings.len()
+    );
+    Ok(AgentsConfigResponse {
+        agents,
+        bindings,
+        subagent_defaults,
+    })
 }
 
 /// Save (add/update) an agent
@@ -2710,34 +3077,48 @@ pub async fn save_agent(agent: AgentInfo) -> Result<String, String> {
         arr.clone()
     } else if let Some(obj) = config["agents"].get("list").and_then(|v| v.as_object()) {
         // Convert legacy object to array
-        obj.iter().map(|(id, val)| {
-            let mut entry = val.clone();
-            entry["id"] = json!(id);
-            entry
-        }).collect()
+        obj.iter()
+            .map(|(id, val)| {
+                let mut entry = val.clone();
+                entry["id"] = json!(id);
+                entry
+            })
+            .collect()
     } else {
         Vec::new()
     };
 
     // For NEW agents: use `openclaw agents add <id> --workspace <dir>` to create proper directory structure
     // The --workspace flag is required to make the CLI non-interactive
-    let is_new_agent = !list.iter().any(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent.id));
+    let is_new_agent = !list
+        .iter()
+        .any(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent.id));
     let mut cli_error: Option<String> = None;
     let is_reserved_name = agent.id.eq_ignore_ascii_case("main"); // Check if name is "main" to bypass CLI
-    
+
     if is_new_agent {
         if !is_reserved_name {
             let openclaw_home = platform::get_config_dir();
             let workspace_dir = if let Some(ws) = &agent.workspace {
                 ws.clone()
             } else if agent.default == Some(true) {
-                std::path::Path::new(&openclaw_home).join("workspace").to_string_lossy().to_string()
+                std::path::Path::new(&openclaw_home)
+                    .join("workspace")
+                    .to_string_lossy()
+                    .to_string()
             } else {
-                std::path::Path::new(&openclaw_home).join(format!("workspace-{}", agent.id)).to_string_lossy().to_string()
+                std::path::Path::new(&openclaw_home)
+                    .join(format!("workspace-{}", agent.id))
+                    .to_string_lossy()
+                    .to_string()
             };
-            
-            info!("[Agents] New agent '{}' — running `openclaw agents add --workspace {}`", agent.id, workspace_dir);
-            match shell::run_openclaw(&["agents", "add", &agent.id, "--workspace", &workspace_dir]) {
+
+            info!(
+                "[Agents] New agent '{}' — running `openclaw agents add --workspace {}`",
+                agent.id, workspace_dir
+            );
+            match shell::run_openclaw(&["agents", "add", &agent.id, "--workspace", &workspace_dir])
+            {
                 Ok(output) => {
                     info!("[Agents] openclaw agents add succeeded: {}", output);
                 }
@@ -2748,113 +3129,142 @@ pub async fn save_agent(agent: AgentInfo) -> Result<String, String> {
                     cli_error = Some(e);
                 }
             }
-            
+
             // CRITICAL: Always reload config after CLI runs — it may have written the entry
             config = load_openclaw_config()?;
             list = if let Some(arr) = config["agents"].get("list").and_then(|v| v.as_array()) {
                 arr.clone()
             } else if let Some(obj) = config["agents"].get("list").and_then(|v| v.as_object()) {
-                obj.iter().map(|(id, val)| {
-                    let mut entry = val.clone();
-                    entry["id"] = json!(id);
-                    entry
-                }).collect()
+                obj.iter()
+                    .map(|(id, val)| {
+                        let mut entry = val.clone();
+                        entry["id"] = json!(id);
+                        entry
+                    })
+                    .collect()
             } else {
                 Vec::new()
             };
         } else {
-             info!("[Agents] Skipping CLI for reserved name '{}', will create manually.", agent.id);
+            info!(
+                "[Agents] Skipping CLI for reserved name '{}', will create manually.",
+                agent.id
+            );
         }
     }
 
     // Find agent in list (handle case-insensitive match if CLI normalized the ID, e.g. AgentTest -> agenttest)
-    let match_index = list.iter().position(|a| {
-        a.get("id").and_then(|v| v.as_str()) == Some(&agent.id)
-    }).or_else(|| {
-        list.iter().position(|a| {
-             a.get("id").and_then(|v| v.as_str()).map(|s| s.to_lowercase()) == Some(agent.id.to_lowercase())
-        })
-    });
+    let match_index = list
+        .iter()
+        .position(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent.id))
+        .or_else(|| {
+            list.iter().position(|a| {
+                a.get("id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_lowercase())
+                    == Some(agent.id.to_lowercase())
+            })
+        });
 
     // Helper closure to create agent directories
     let ensure_directories = |agent_entry: &serde_json::Value| {
         let openclaw_home = platform::get_config_dir();
-        
+
         // 1. Agent Config Directory
         // Use configured 'agentDir' or default to ~/.openclaw/agents/<id>/agent
         // The CLI standard is to have the agent files inside an `agent` subdirectory
-        let agent_dir_path = if let Some(dir) = agent_entry.get("agentDir").and_then(|v| v.as_str()) {
-             std::path::PathBuf::from(dir)
+        let agent_dir_path = if let Some(dir) = agent_entry.get("agentDir").and_then(|v| v.as_str())
+        {
+            std::path::PathBuf::from(dir)
         } else {
-             let id = agent_entry.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
-             std::path::Path::new(&openclaw_home).join("agents").join(id).join("agent")
+            let id = agent_entry
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+            std::path::Path::new(&openclaw_home)
+                .join("agents")
+                .join(id)
+                .join("agent")
         };
-        
+
         if !agent_dir_path.exists() {
-             info!("[Agents] Creating agent directory: {:?}", agent_dir_path);
-             let _ = std::fs::create_dir_all(&agent_dir_path);
+            info!("[Agents] Creating agent directory: {:?}", agent_dir_path);
+            let _ = std::fs::create_dir_all(&agent_dir_path);
         }
-        
+
         // SOUL.md
         let soul_path = agent_dir_path.join("SOUL.md");
         if !soul_path.exists() {
-             info!("[Agents] SOUL.md missing, creating default");
-             let name = agent_entry.get("name").and_then(|v| v.as_str()).unwrap_or("agent");
-             let default_soul = format!("You are {}, a helpful AI assistant.", name);
-             let _ = std::fs::write(soul_path, default_soul);
+            info!("[Agents] SOUL.md missing, creating default");
+            let name = agent_entry
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("agent");
+            let default_soul = format!("You are {}, a helpful AI assistant.", name);
+            let _ = std::fs::write(soul_path, default_soul);
         }
 
         // models.json
         let models_path = agent_dir_path.join("models.json");
         if !models_path.exists() {
-             info!("[Agents] models.json missing, creating default");
-             let default_models = json!({
-                "providers": {
-                    "glm": {
-                        "baseUrl": "https://api.z.ai/api/anthropic",
-                        "apiKey": "",
-                        "models": [ 
-                            {
-                                "id": "glm-4",
-                                "name": "GLM-4",
-                                "api": "openai-completions",
-                                "reasoning": false,
-                                "input": ["text", "image"],
-                                "contextWindow": 128000,
-                                "maxTokens": 8192
-                            }
-                        ]
-                    }
-                }
-             });
-             // Pretty print the JSON
-             if let Ok(content) = serde_json::to_string_pretty(&default_models) {
-                 let _ = std::fs::write(models_path, content);
-             }
+            info!("[Agents] models.json missing, creating default");
+            let default_models = json!({
+               "providers": {
+                   "glm": {
+                       "baseUrl": "https://api.z.ai/api/anthropic",
+                       "apiKey": "",
+                       "models": [
+                           {
+                               "id": "glm-4",
+                               "name": "GLM-4",
+                               "api": "openai-completions",
+                               "reasoning": false,
+                               "input": ["text", "image"],
+                               "contextWindow": 128000,
+                               "maxTokens": 8192
+                           }
+                       ]
+                   }
+               }
+            });
+            // Pretty print the JSON
+            if let Ok(content) = serde_json::to_string_pretty(&default_models) {
+                let _ = std::fs::write(models_path, content);
+            }
         }
-        
+
         // 2. Workspace Directory
         // Use configured 'workspace' or default to ~/.openclaw/workspace-<id>
-        let workspace_path = if let Some(ws) = agent_entry.get("workspace").and_then(|v| v.as_str()) {
-             std::path::PathBuf::from(ws)
+        let workspace_path = if let Some(ws) = agent_entry.get("workspace").and_then(|v| v.as_str())
+        {
+            std::path::PathBuf::from(ws)
         } else {
-             let id = agent_entry.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
-             std::path::Path::new(&openclaw_home).join(format!("workspace-{}", id))
+            let id = agent_entry
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+            std::path::Path::new(&openclaw_home).join(format!("workspace-{}", id))
         };
-        
+
         if !workspace_path.exists() {
-             info!("[Agents] Creating workspace directory: {:?}", workspace_path);
-             let _ = std::fs::create_dir_all(&workspace_path);
+            info!(
+                "[Agents] Creating workspace directory: {:?}",
+                workspace_path
+            );
+            let _ = std::fs::create_dir_all(&workspace_path);
         }
-        
+
         // Return paths to update config if they were defaults
-        (agent_dir_path.to_string_lossy().to_string(), workspace_path.to_string_lossy().to_string())
+        (
+            agent_dir_path.to_string_lossy().to_string(),
+            workspace_path.to_string_lossy().to_string(),
+        )
     };
 
     // Update or add the agent
     if let Some(idx) = match_index {
         let existing = &mut list[idx];
-        
+
         // Merge: only overwrite fields the user explicitly set (non-empty)
         if let Some(name) = &agent.name {
             if !name.is_empty() {
@@ -2871,7 +3281,7 @@ pub async fn save_agent(agent: AgentInfo) -> Result<String, String> {
                 existing["default"] = json!(true);
             }
         }
-        
+
         // Enforce "Main" agent properties
         if agent.id.eq_ignore_ascii_case("main") {
             // "Main" should always be default unless user explicitly sets another default (which handles itself)
@@ -2894,34 +3304,36 @@ pub async fn save_agent(agent: AgentInfo) -> Result<String, String> {
                 existing["heartbeat"] = json!({ "every": heartbeat });
             }
         }
-        
+
         // Repair directories for existing agent
         let _ = ensure_directories(existing);
-        
     } else {
         // Not found in config (New agent, manual addition)
-        
+
         // If we tried to create it via CLI and it's missing (and NOT reserved), that means CLI strictly failed.
         if let Some(err) = cli_error {
-             if !is_reserved_name {
-                 return Err(format!("Failed to create agent via CLI: {}. Check logs or name uniqueness.", err));
-             }
+            if !is_reserved_name {
+                return Err(format!(
+                    "Failed to create agent via CLI: {}. Check logs or name uniqueness.",
+                    err
+                ));
+            }
         }
 
         // Add to list
         let mut new_entry = agent_obj.clone();
-        
+
         // Ensure directories and get default paths if we need to explicitly save them
         let (actual_agent_dir, actual_workspace) = ensure_directories(&new_entry);
-        
+
         // If user didn't specify paths, save the defaults we just used/created
         if new_entry.get("agentDir").is_none() {
-             new_entry["agentDir"] = json!(actual_agent_dir);
+            new_entry["agentDir"] = json!(actual_agent_dir);
         }
         if new_entry.get("workspace").is_none() {
-             new_entry["workspace"] = json!(actual_workspace);
+            new_entry["workspace"] = json!(actual_workspace);
         }
-        
+
         list.push(new_entry);
     }
 
@@ -2929,39 +3341,64 @@ pub async fn save_agent(agent: AgentInfo) -> Result<String, String> {
 
     // Auto-create binding if a Telegram bot account is available and this agent has no binding yet
     let agent_id = agent.id.clone();
-    let available_accounts: Vec<String> = config.pointer("/channels/telegram/accounts")
+    let available_accounts: Vec<String> = config
+        .pointer("/channels/telegram/accounts")
         .and_then(|v| v.as_object())
         .map(|accts| accts.keys().cloned().collect())
         .unwrap_or_default();
 
     if !available_accounts.is_empty() {
         // Check if this agent already has ANY binding
-        let has_existing_binding = config.get("bindings")
+        let has_existing_binding = config
+            .get("bindings")
             .and_then(|v| v.as_array())
-            .map(|bindings| bindings.iter().any(|b| {
-                b.get("agentId").and_then(|v| v.as_str()) == Some(&agent_id)
-            }))
+            .map(|bindings| {
+                bindings
+                    .iter()
+                    .any(|b| b.get("agentId").and_then(|v| v.as_str()) == Some(&agent_id))
+            })
             .unwrap_or(false);
 
         if !has_existing_binding {
             // Find accounts already bound to other agents
-            let bound_accounts: Vec<String> = config.get("bindings")
+            let bound_accounts: Vec<String> = config
+                .get("bindings")
                 .and_then(|v| v.as_array())
-                .map(|bindings| bindings.iter().filter_map(|b| {
-                    b.get("match").and_then(|m| m.get("accountId")).and_then(|v| v.as_str()).map(|s| s.to_string())
-                }).collect())
+                .map(|bindings| {
+                    bindings
+                        .iter()
+                        .filter_map(|b| {
+                            b.get("match")
+                                .and_then(|m| m.get("accountId"))
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string())
+                        })
+                        .collect()
+                })
                 .unwrap_or_default();
 
             // Prefer: exact match > substring match > first unbound account > first account
-            let best_account = available_accounts.iter()
+            let best_account = available_accounts
+                .iter()
                 .find(|a| **a == agent_id) // exact match
-                .or_else(|| available_accounts.iter().find(|a| a.contains(&agent_id) || agent_id.contains(a.as_str()))) // substring
-                .or_else(|| available_accounts.iter().find(|a| !bound_accounts.contains(a))) // unbound
+                .or_else(|| {
+                    available_accounts
+                        .iter()
+                        .find(|a| a.contains(&agent_id) || agent_id.contains(a.as_str()))
+                }) // substring
+                .or_else(|| {
+                    available_accounts
+                        .iter()
+                        .find(|a| !bound_accounts.contains(a))
+                }) // unbound
                 .or_else(|| available_accounts.first()) // fallback
                 .cloned();
 
             if let Some(account_id) = best_account {
-                info!("[Agents] Auto-creating binding for agent '{}' → account '{}'", agent_id, account_id);
+                info!(
+                    "[Agents] Auto-creating binding for agent '{}' → account '{}'",
+                    agent_id, account_id
+                );
                 if config.get("bindings").is_none() {
                     config["bindings"] = json!([]);
                 }
@@ -3014,7 +3451,10 @@ pub async fn save_subagent_defaults(defaults: SubagentDefaults) -> Result<String
         if config["tools"].get("sessions_spawn").is_none() {
             config["tools"]["sessions_spawn"] = json!({});
         }
-        if config["tools"]["sessions_spawn"].get("attachments").is_none() {
+        if config["tools"]["sessions_spawn"]
+            .get("attachments")
+            .is_none()
+        {
             config["tools"]["sessions_spawn"]["attachments"] = json!({});
         }
 
@@ -3041,7 +3481,10 @@ pub async fn delete_agent(agent_id: String) -> Result<String, String> {
     let mut workspace_to_delete: Option<String> = None;
 
     if let Some(list) = config.pointer("/agents/list").and_then(|v| v.as_array()) {
-        if let Some(agent) = list.iter().find(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent_id)) {
+        if let Some(agent) = list
+            .iter()
+            .find(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent_id))
+        {
             // Get agent directory
             if let Some(dir) = agent.get("agentDir").and_then(|v| v.as_str()) {
                 agent_dir_to_delete = Some(dir.to_string());
@@ -3052,7 +3495,8 @@ pub async fn delete_agent(agent_id: String) -> Result<String, String> {
             } else {
                 // Fallback: deduce workspace path if default pattern was used
                 let openclaw_home = platform::get_config_dir();
-                let default_ws = std::path::Path::new(&openclaw_home).join(format!("workspace-{}", agent_id));
+                let default_ws =
+                    std::path::Path::new(&openclaw_home).join(format!("workspace-{}", agent_id));
                 if default_ws.exists() {
                     workspace_to_delete = Some(default_ws.to_string_lossy().to_string());
                 }
@@ -3067,14 +3511,17 @@ pub async fn delete_agent(agent_id: String) -> Result<String, String> {
     if let Some(agent_dir) = agent_dir_to_delete {
         let path = std::path::Path::new(&agent_dir);
         let mut path_to_remove = path;
-        
+
         // Safety check: if the standard structure is ~/.openclaw/agents/<id>/agent
         // we want to delete the <id> folder to also clear sessions and other subdirectories.
         // We only do this if we are certain the grandparent is "agents".
         if path.ends_with("agent") {
             if let Some(parent) = path.parent() {
                 if let Some(grandparent) = parent.parent() {
-                    let grandparent_name = grandparent.file_name().unwrap_or_default().to_string_lossy();
+                    let grandparent_name = grandparent
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy();
                     if grandparent_name == "agents" {
                         path_to_remove = parent;
                     }
@@ -3084,23 +3531,39 @@ pub async fn delete_agent(agent_id: String) -> Result<String, String> {
 
         // Final safety guard: NEVER delete the openclaw_home itself or anything suspiciously short
         let openclaw_home = platform::get_config_dir();
-        if path_to_remove.to_string_lossy() == openclaw_home || path_to_remove.components().count() <= 2 {
-            warn!("[Agents] SAFETY ABORT: Refusing to delete root or dangerously short path: {:?}", path_to_remove);
+        if path_to_remove.to_string_lossy() == openclaw_home
+            || path_to_remove.components().count() <= 2
+        {
+            warn!(
+                "[Agents] SAFETY ABORT: Refusing to delete root or dangerously short path: {:?}",
+                path_to_remove
+            );
         } else if path_to_remove.exists() {
-            info!("[Agents] Removing agent directory tree: {:?}", path_to_remove);
+            info!(
+                "[Agents] Removing agent directory tree: {:?}",
+                path_to_remove
+            );
             if let Err(e) = std::fs::remove_dir_all(path_to_remove) {
-                warn!("[Agents] Failed to remove agent directory {:?}: {}", path_to_remove, e);
+                warn!(
+                    "[Agents] Failed to remove agent directory {:?}: {}",
+                    path_to_remove, e
+                );
             }
         }
     } else {
         // Fallback: try default location if not specified in config
         let openclaw_home = platform::get_config_dir();
         // Default structure is now ~/.openclaw/agents/<id> (which contains agent/, sessions/, etc.)
-        let default_agent_root = std::path::Path::new(&openclaw_home).join("agents").join(&agent_id);
-        
+        let default_agent_root = std::path::Path::new(&openclaw_home)
+            .join("agents")
+            .join(&agent_id);
+
         if default_agent_root.exists() {
-             info!("[Agents] Removing default agent directory tree: {:?}", default_agent_root);
-             if let Err(e) = std::fs::remove_dir_all(&default_agent_root) {
+            info!(
+                "[Agents] Removing default agent directory tree: {:?}",
+                default_agent_root
+            );
+            if let Err(e) = std::fs::remove_dir_all(&default_agent_root) {
                 warn!("[Agents] Failed to remove default agent directory: {}", e);
             }
         }
@@ -3109,19 +3572,25 @@ pub async fn delete_agent(agent_id: String) -> Result<String, String> {
     if let Some(workspace) = workspace_to_delete {
         let path = std::path::Path::new(&workspace);
         let openclaw_home = platform::get_config_dir();
-        
+
         if path.to_string_lossy() == openclaw_home || path.components().count() <= 2 {
             warn!("[Agents] SAFETY ABORT: Refusing to delete root or dangerously short workspace path: {:?}", path);
         } else if path.exists() {
             info!("[Agents] Removing workspace directory: {}", workspace);
             if let Err(e) = std::fs::remove_dir_all(path) {
-                warn!("[Agents] Failed to remove workspace directory {}: {}", workspace, e);
+                warn!(
+                    "[Agents] Failed to remove workspace directory {}: {}",
+                    workspace, e
+                );
             }
         }
     }
 
     // 3. Remove from agents.list (array format)
-    if let Some(list) = config.pointer_mut("/agents/list").and_then(|v| v.as_array_mut()) {
+    if let Some(list) = config
+        .pointer_mut("/agents/list")
+        .and_then(|v| v.as_array_mut())
+    {
         list.retain(|a| a.get("id").and_then(|v| v.as_str()) != Some(&agent_id));
     }
 
@@ -3130,7 +3599,10 @@ pub async fn delete_agent(agent_id: String) -> Result<String, String> {
         bindings.retain(|b| b.get("agentId").and_then(|v| v.as_str()) != Some(&agent_id));
     }
     // Also clean legacy agents.bindings
-    if let Some(bindings) = config.pointer_mut("/agents/bindings").and_then(|v| v.as_array_mut()) {
+    if let Some(bindings) = config
+        .pointer_mut("/agents/bindings")
+        .and_then(|v| v.as_array_mut())
+    {
         bindings.retain(|b| b.get("agentId").and_then(|v| v.as_str()) != Some(&agent_id));
     }
 
@@ -3151,7 +3623,11 @@ pub async fn save_agent_binding(binding: AgentBinding) -> Result<String, String>
     }
 
     // Migrate legacy agents.bindings to top-level if present
-    if let Some(legacy) = config.pointer("/agents/bindings").and_then(|v| v.as_array()).map(|a| a.clone()) {
+    if let Some(legacy) = config
+        .pointer("/agents/bindings")
+        .and_then(|v| v.as_array())
+        .map(|a| a.clone())
+    {
         if let Some(top) = config.get_mut("bindings").and_then(|v| v.as_array_mut()) {
             for b in legacy {
                 top.push(b);
@@ -3165,10 +3641,14 @@ pub async fn save_agent_binding(binding: AgentBinding) -> Result<String, String>
 
     let mut match_obj = json!({});
     if let Some(ch) = &binding.match_rule.channel {
-        if !ch.is_empty() { match_obj["channel"] = json!(ch); }
+        if !ch.is_empty() {
+            match_obj["channel"] = json!(ch);
+        }
     }
     if let Some(acc) = &binding.match_rule.account_id {
-        if !acc.is_empty() { match_obj["accountId"] = json!(acc); }
+        if !acc.is_empty() {
+            match_obj["accountId"] = json!(acc);
+        }
     }
     if let Some(peer) = &binding.match_rule.peer {
         match_obj["peer"] = peer.clone();
@@ -3205,7 +3685,10 @@ pub async fn delete_agent_binding(index: usize) -> Result<String, String> {
     }
 
     // Fallback to legacy agents.bindings
-    if let Some(bindings) = config.pointer_mut("/agents/bindings").and_then(|v| v.as_array_mut()) {
+    if let Some(bindings) = config
+        .pointer_mut("/agents/bindings")
+        .and_then(|v| v.as_array_mut())
+    {
         if index < bindings.len() {
             bindings.remove(index);
             save_openclaw_config(&config)?;
@@ -3222,15 +3705,22 @@ pub async fn delete_agent_binding(index: usize) -> Result<String, String> {
 
 /// Read the personality (SOUL.md) for an agent
 #[command]
-pub async fn get_agent_system_prompt(agent_id: String, workspace: Option<String>) -> Result<String, String> {
+pub async fn get_agent_system_prompt(
+    agent_id: String,
+    workspace: Option<String>,
+) -> Result<String, String> {
     let base = workspace.unwrap_or_else(|| platform::get_config_dir());
     let sep = if cfg!(windows) { "\\" } else { "/" };
-    
+
     // Resolve agent directory from config to handle case where ID != dir name
     let config = load_openclaw_config().map_err(|e| e.to_string())?;
-    let agent_dir_rel = config.pointer("/agents/list")
+    let agent_dir_rel = config
+        .pointer("/agents/list")
         .and_then(|v| v.as_array())
-        .and_then(|list| list.iter().find(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent_id)))
+        .and_then(|list| {
+            list.iter()
+                .find(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent_id))
+        })
         .and_then(|agent| agent.get("agentDir").and_then(|v| v.as_str()))
         .map(|s| s.replace("/", sep)) //normalize separators
         .unwrap_or_else(|| format!("agents{}{}", sep, agent_id)); // fallback
@@ -3241,12 +3731,15 @@ pub async fn get_agent_system_prompt(agent_id: String, workspace: Option<String>
     } else {
         format!("{}{}{}", base, sep, agent_dir_rel)
     };
-    
+
     // Try locations in order of likelihood - prioritizing the CORRECT one first
     let paths = vec![
-        format!("{}{}SOUL.md", dir_config, sep),                                // 1. agents/{id}/SOUL.md (CORRECT)
-        format!("{}{}{}{}{}{}SOUL.md", base, sep, "agent", sep, agent_id, sep), // 2. agent/{id}/SOUL.md (Legacy/Buggy)
-        format!("{}{}agent{}SOUL.md", dir_config, sep, sep),                    // 3. agents/{id}/agent/SOUL.md (Legacy/Buggy)
+        format!("{}{}SOUL.md", dir_config, sep), // 1. agents/{id}/SOUL.md (CORRECT)
+        format!(
+            "{}{}{}{}{}{}SOUL.md",
+            base, sep, "agent", sep, agent_id, sep
+        ), // 2. agent/{id}/SOUL.md (Legacy/Buggy)
+        format!("{}{}agent{}SOUL.md", dir_config, sep, sep), // 3. agents/{id}/agent/SOUL.md (Legacy/Buggy)
     ];
 
     for path in &paths {
@@ -3256,21 +3749,29 @@ pub async fn get_agent_system_prompt(agent_id: String, workspace: Option<String>
                 .map_err(|e| format!("Failed to read SOUL.md: {}", e));
         }
     }
-    
+
     Ok(String::new())
 }
 
 /// Save the personality (SOUL.md) for an agent
 #[command]
-pub async fn save_agent_system_prompt(agent_id: String, workspace: Option<String>, content: String) -> Result<String, String> {
+pub async fn save_agent_system_prompt(
+    agent_id: String,
+    workspace: Option<String>,
+    content: String,
+) -> Result<String, String> {
     let base = workspace.unwrap_or_else(|| platform::get_config_dir());
     let sep = if cfg!(windows) { "\\" } else { "/" };
-    
+
     // Resolve agent directory from config
     let config = load_openclaw_config().map_err(|e| e.to_string())?;
-    let agent_dir_rel = config.pointer("/agents/list")
+    let agent_dir_rel = config
+        .pointer("/agents/list")
         .and_then(|v| v.as_array())
-        .and_then(|list| list.iter().find(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent_id)))
+        .and_then(|list| {
+            list.iter()
+                .find(|a| a.get("id").and_then(|v| v.as_str()) == Some(&agent_id))
+        })
         .and_then(|agent| agent.get("agentDir").and_then(|v| v.as_str()))
         .map(|s| s.replace("/", sep))
         .unwrap_or_else(|| format!("agents{}{}", sep, agent_id));
@@ -3281,7 +3782,7 @@ pub async fn save_agent_system_prompt(agent_id: String, workspace: Option<String
     } else {
         format!("{}{}{}", base, sep, agent_dir_rel)
     };
-    
+
     // ONLY save to the correct canonical path
     let path = format!("{}{}SOUL.md", dir_config, sep);
 
@@ -3290,13 +3791,16 @@ pub async fn save_agent_system_prompt(agent_id: String, workspace: Option<String
             return Err(format!("Failed to create directory for {}: {}", path, e));
         }
     }
-    
+
     match std::fs::write(&path, &content) {
         Ok(_) => {
             info!("[Agents] Wrote SOUL.md to: {}", path);
-            Ok(format!("Personality (SOUL.md) saved for agent '{}'", agent_id))
-        },
-        Err(e) => Err(format!("Failed to save SOUL.md to {}: {}", path, e))
+            Ok(format!(
+                "Personality (SOUL.md) saved for agent '{}'",
+                agent_id
+            ))
+        }
+        Err(e) => Err(format!("Failed to save SOUL.md to {}: {}", path, e)),
     }
 }
 
@@ -3320,27 +3824,38 @@ pub async fn test_agent_routing(account_id: String) -> Result<serde_json::Value,
             let channel_matches = binding_channel.map(|c| c == "telegram").unwrap_or(true);
 
             if account_matches && channel_matches {
-                let agent_id = binding.get("agentId").and_then(|v| v.as_str()).unwrap_or("unknown");
+                let agent_id = binding
+                    .get("agentId")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
 
                 // Find agent details
-                let agent_info = config.pointer("/agents/list")
+                let agent_info = config
+                    .pointer("/agents/list")
                     .and_then(|v| v.as_array())
-                    .and_then(|list| list.iter().find(|a| a.get("id").and_then(|v| v.as_str()) == Some(agent_id)));
+                    .and_then(|list| {
+                        list.iter()
+                            .find(|a| a.get("id").and_then(|v| v.as_str()) == Some(agent_id))
+                    });
 
                 // Read SOUL.md preview (try all 3 locations)
                 let base = platform::get_config_dir();
                 let sep = if cfg!(windows) { "\\" } else { "/" };
-                let agent_dir_rel = agent_info.and_then(|a| a.get("agentDir").and_then(|v| v.as_str()))
+                let agent_dir_rel = agent_info
+                    .and_then(|a| a.get("agentDir").and_then(|v| v.as_str()))
                     .map(|s| s.replace("/", sep))
                     .unwrap_or_else(|| format!("agents{}{}", sep, agent_id));
-                
+
                 let dir_config = format!("{}{}{}", base, sep, agent_dir_rel);
                 let check_paths = vec![
-                    format!("{}{}{}{}{}{}SOUL.md", base, sep, "agent", sep, agent_id, sep),
+                    format!(
+                        "{}{}{}{}{}{}SOUL.md",
+                        base, sep, "agent", sep, agent_id, sep
+                    ),
                     format!("{}{}agent{}SOUL.md", dir_config, sep, sep),
                     format!("{}{}SOUL.md", dir_config, sep),
                 ];
-                
+
                 let mut prompt_preview = String::new();
                 for path in check_paths {
                     if std::path::Path::new(&path).exists() {
@@ -3397,27 +3912,45 @@ pub async fn get_heartbeat_config() -> Result<HeartbeatConfig, String> {
     info!("[Heartbeat] Getting heartbeat config...");
     let config = load_openclaw_config()?;
 
-    let every = config.pointer("/agents/defaults/heartbeat/every")
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
-    let target = config.pointer("/agents/defaults/heartbeat/target")
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
+    let every = config
+        .pointer("/agents/defaults/heartbeat/every")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let target = config
+        .pointer("/agents/defaults/heartbeat/target")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     Ok(HeartbeatConfig { every, target })
 }
 
 /// Save heartbeat configuration
 #[command]
-pub async fn save_heartbeat_config(every: Option<String>, target: Option<String>) -> Result<String, String> {
-    info!("[Heartbeat] Saving heartbeat config: every={:?}, target={:?}", every, target);
+pub async fn save_heartbeat_config(
+    every: Option<String>,
+    target: Option<String>,
+) -> Result<String, String> {
+    info!(
+        "[Heartbeat] Saving heartbeat config: every={:?}, target={:?}",
+        every, target
+    );
     let mut config = load_openclaw_config()?;
 
-    if config.get("agents").is_none() { config["agents"] = json!({}); }
-    if config["agents"].get("defaults").is_none() { config["agents"]["defaults"] = json!({}); }
+    if config.get("agents").is_none() {
+        config["agents"] = json!({});
+    }
+    if config["agents"].get("defaults").is_none() {
+        config["agents"]["defaults"] = json!({});
+    }
 
     if every.is_some() || target.is_some() {
         let mut hb = json!({});
-        if let Some(e) = &every { hb["every"] = json!(e); }
-        if let Some(t) = &target { hb["target"] = json!(t); }
+        if let Some(e) = &every {
+            hb["every"] = json!(e);
+        }
+        if let Some(t) = &target {
+            hb["target"] = json!(t);
+        }
         config["agents"]["defaults"]["heartbeat"] = hb;
     } else {
         // Remove heartbeat if both are None
@@ -3439,24 +3972,33 @@ pub async fn get_compaction_config() -> Result<CompactionConfig, String> {
     let compaction_val = config.pointer("/agents/defaults/compaction");
     let pruning_val = config.pointer("/agents/defaults/contextPruning");
 
-    let enabled = compaction_val.map(|v| {
-        // compaction can be true/false or an object with settings
-        v.as_bool().unwrap_or(true)
-    }).unwrap_or(false);
+    let enabled = compaction_val
+        .map(|v| {
+            // compaction can be true/false or an object with settings
+            v.as_bool().unwrap_or(true)
+        })
+        .unwrap_or(false);
 
     let threshold = compaction_val
         .and_then(|v| v.get("threshold"))
         .and_then(|v| v.as_u64())
         .map(|v| v as u32);
 
-    let context_pruning = pruning_val.map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false);
+    let context_pruning = pruning_val
+        .map(|v| v.as_bool().unwrap_or(false))
+        .unwrap_or(false);
 
     let max_context_messages = pruning_val
         .and_then(|v| v.get("maxMessages"))
         .and_then(|v| v.as_u64())
         .map(|v| v as u32);
 
-    Ok(CompactionConfig { enabled, threshold, context_pruning, max_context_messages })
+    Ok(CompactionConfig {
+        enabled,
+        threshold,
+        context_pruning,
+        max_context_messages,
+    })
 }
 
 /// Save compaction configuration
@@ -3467,15 +4009,24 @@ pub async fn save_compaction_config(
     context_pruning: bool,
     max_context_messages: Option<u32>,
 ) -> Result<String, String> {
-    info!("[Compaction] Saving compaction config: enabled={}, pruning={}", enabled, context_pruning);
+    info!(
+        "[Compaction] Saving compaction config: enabled={}, pruning={}",
+        enabled, context_pruning
+    );
     let mut config = load_openclaw_config()?;
 
-    if config.get("agents").is_none() { config["agents"] = json!({}); }
-    if config["agents"].get("defaults").is_none() { config["agents"]["defaults"] = json!({}); }
+    if config.get("agents").is_none() {
+        config["agents"] = json!({});
+    }
+    if config["agents"].get("defaults").is_none() {
+        config["agents"]["defaults"] = json!({});
+    }
 
     if enabled {
         let mut comp = json!({});
-        if let Some(t) = threshold { comp["threshold"] = json!(t); }
+        if let Some(t) = threshold {
+            comp["threshold"] = json!(t);
+        }
         config["agents"]["defaults"]["compaction"] = comp;
     } else {
         if let Some(defaults) = config["agents"]["defaults"].as_object_mut() {
@@ -3517,18 +4068,34 @@ pub async fn get_workspace_config() -> Result<WorkspaceConfig, String> {
     info!("[Workspace] Getting workspace config...");
     let config = load_openclaw_config()?;
 
-    let workspace = config.pointer("/agents/defaults/workspace")
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
-    let timezone = config.pointer("/manager/timezone")
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
-    let time_format = config.pointer("/manager/time_format")
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
-    let skip_bootstrap = config.pointer("/agents/defaults/skipBootstrap")
-        .and_then(|v| v.as_bool()).unwrap_or(false);
-    let bootstrap_max_chars = config.pointer("/agents/defaults/bootstrapMaxChars")
-        .and_then(|v| v.as_u64()).map(|v| v as u32);
+    let workspace = config
+        .pointer("/agents/defaults/workspace")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let timezone = config
+        .pointer("/manager/timezone")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let time_format = config
+        .pointer("/manager/time_format")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let skip_bootstrap = config
+        .pointer("/agents/defaults/skipBootstrap")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let bootstrap_max_chars = config
+        .pointer("/agents/defaults/bootstrapMaxChars")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32);
 
-    Ok(WorkspaceConfig { workspace, timezone, time_format, skip_bootstrap, bootstrap_max_chars })
+    Ok(WorkspaceConfig {
+        workspace,
+        timezone,
+        time_format,
+        skip_bootstrap,
+        bootstrap_max_chars,
+    })
 }
 
 /// Save workspace configuration
@@ -3543,14 +4110,25 @@ pub async fn save_workspace_config(
     info!("[Workspace] Saving workspace config...");
     let mut config = load_openclaw_config()?;
 
-    if config.get("agents").is_none() { config["agents"] = json!({}); }
-    if config["agents"].get("defaults").is_none() { config["agents"]["defaults"] = json!({}); }
+    if config.get("agents").is_none() {
+        config["agents"] = json!({});
+    }
+    if config["agents"].get("defaults").is_none() {
+        config["agents"]["defaults"] = json!({});
+    }
 
     // Set or remove each field in agents.defaults
-    if let Some(defaults) = config.pointer_mut("/agents/defaults").and_then(|v| v.as_object_mut()) {
+    if let Some(defaults) = config
+        .pointer_mut("/agents/defaults")
+        .and_then(|v| v.as_object_mut())
+    {
         match &workspace {
-            Some(w) if !w.is_empty() => { defaults.insert("workspace".into(), json!(w)); }
-            _ => { defaults.remove("workspace"); }
+            Some(w) if !w.is_empty() => {
+                defaults.insert("workspace".into(), json!(w));
+            }
+            _ => {
+                defaults.remove("workspace");
+            }
         }
         if skip_bootstrap {
             defaults.insert("skipBootstrap".into(), json!(true));
@@ -3558,8 +4136,12 @@ pub async fn save_workspace_config(
             defaults.remove("skipBootstrap");
         }
         match bootstrap_max_chars {
-            Some(max) => { defaults.insert("bootstrapMaxChars".into(), json!(max)); }
-            None => { defaults.remove("bootstrapMaxChars"); }
+            Some(max) => {
+                defaults.insert("bootstrapMaxChars".into(), json!(max));
+            }
+            None => {
+                defaults.remove("bootstrapMaxChars");
+            }
         }
         // Remove timezone/timeFormat from defaults if present (migrate to manager)
         defaults.remove("timezone");
@@ -3567,15 +4149,25 @@ pub async fn save_workspace_config(
     }
 
     // Set manager fields
-    if config.get("manager").is_none() { config["manager"] = json!({}); }
+    if config.get("manager").is_none() {
+        config["manager"] = json!({});
+    }
     if let Some(manager) = config.get_mut("manager").and_then(|v| v.as_object_mut()) {
         match &timezone {
-            Some(tz) if !tz.is_empty() => { manager.insert("timezone".into(), json!(tz)); }
-            _ => { manager.remove("timezone"); }
+            Some(tz) if !tz.is_empty() => {
+                manager.insert("timezone".into(), json!(tz));
+            }
+            _ => {
+                manager.remove("timezone");
+            }
         }
         match &time_format {
-            Some(tf) if !tf.is_empty() => { manager.insert("time_format".into(), json!(tf)); }
-            _ => { manager.remove("time_format"); }
+            Some(tf) if !tf.is_empty() => {
+                manager.insert("time_format".into(), json!(tf));
+            }
+            _ => {
+                manager.remove("time_format");
+            }
         }
     }
 
@@ -3591,12 +4183,16 @@ pub async fn get_personality_file(filename: String) -> Result<String, String> {
     // Validate filename
     let allowed = ["AGENTS.md", "SOUL.md", "TOOLS.md"];
     if !allowed.contains(&filename.as_str()) {
-        return Err(format!("Invalid file: {}. Allowed: {:?}", filename, allowed));
+        return Err(format!(
+            "Invalid file: {}. Allowed: {:?}",
+            filename, allowed
+        ));
     }
 
     // Get workspace path from config, fallback to ~/.openclaw
     let config = load_openclaw_config()?;
-    let workspace = config.pointer("/agents/defaults/workspace")
+    let workspace = config
+        .pointer("/agents/defaults/workspace")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -3625,11 +4221,15 @@ pub async fn save_personality_file(filename: String, content: String) -> Result<
 
     let allowed = ["AGENTS.md", "SOUL.md", "TOOLS.md"];
     if !allowed.contains(&filename.as_str()) {
-        return Err(format!("Invalid file: {}. Allowed: {:?}", filename, allowed));
+        return Err(format!(
+            "Invalid file: {}. Allowed: {:?}",
+            filename, allowed
+        ));
     }
 
     let config = load_openclaw_config()?;
-    let workspace = config.pointer("/agents/defaults/workspace")
+    let workspace = config
+        .pointer("/agents/defaults/workspace")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -3667,11 +4267,13 @@ pub async fn get_browser_config() -> Result<BrowserConfig, String> {
     let config = load_openclaw_config()?;
 
     // Read from meta (Manager specific)
-    let enabled = config.pointer("/meta/gui/browser/enabled")
+    let enabled = config
+        .pointer("/meta/gui/browser/enabled")
         .and_then(|v| v.as_bool())
         .unwrap_or(true); // Default to true if not set
 
-    let color = config.pointer("/meta/gui/browser/color")
+    let color = config
+        .pointer("/meta/gui/browser/color")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
@@ -3681,13 +4283,20 @@ pub async fn get_browser_config() -> Result<BrowserConfig, String> {
 /// Save browser configuration
 #[command]
 pub async fn save_browser_config(enabled: bool, color: Option<String>) -> Result<String, String> {
-    info!("[Browser] Saving browser config: enabled={}, color={:?}", enabled, color);
+    info!(
+        "[Browser] Saving browser config: enabled={}, color={:?}",
+        enabled, color
+    );
     let mut config = load_openclaw_config()?;
 
     // Store in meta.gui.browser to avoid polluting core config
-    if config.get("meta").is_none() { config["meta"] = json!({}); }
-    if config["meta"].get("gui").is_none() { config["meta"]["gui"] = json!({}); }
-    
+    if config.get("meta").is_none() {
+        config["meta"] = json!({});
+    }
+    if config["meta"].get("gui").is_none() {
+        config["meta"]["gui"] = json!({});
+    }
+
     let mut browser_config = json!({
         "enabled": enabled
     });
@@ -3718,7 +4327,8 @@ pub async fn get_web_config() -> Result<WebConfig, String> {
     info!("[Web] Getting web search config...");
     let config = load_openclaw_config()?;
 
-    let brave_api_key = config.pointer("/web/braveApiKey")
+    let brave_api_key = config
+        .pointer("/web/braveApiKey")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
@@ -3746,7 +4356,6 @@ pub async fn save_web_config(brave_api_key: Option<String>) -> Result<String, St
         }
     }
 
-
     save_openclaw_config(&config)?;
     Ok("Web search configuration saved".to_string())
 }
@@ -3766,12 +4375,14 @@ pub async fn get_gateway_config() -> Result<GatewayConfig, String> {
     info!("[Gateway] Getting gateway config...");
     let config = load_openclaw_config()?;
 
-    let port = config.pointer("/gateway/port")
+    let port = config
+        .pointer("/gateway/port")
         .and_then(|v| v.as_u64())
         .map(|v| v as u16)
         .unwrap_or(3000);
 
-    let log_level = config.pointer("/manager/log_level")
+    let log_level = config
+        .pointer("/manager/log_level")
         .and_then(|v| v.as_str())
         .or_else(|| config.pointer("/gateway/logLevel").and_then(|v| v.as_str())) // Legacy fallback
         .map(|s| s.to_string())
@@ -3783,7 +4394,10 @@ pub async fn get_gateway_config() -> Result<GatewayConfig, String> {
 /// Save gateway configuration
 #[command]
 pub async fn save_gateway_config(port: u16, log_level: String) -> Result<String, String> {
-    info!("[Gateway] Saving gateway config: port={}, level={}", port, log_level);
+    info!(
+        "[Gateway] Saving gateway config: port={}, level={}",
+        port, log_level
+    );
     let mut config = load_openclaw_config()?;
 
     if config.get("gateway").is_none() {
@@ -3804,7 +4418,7 @@ pub async fn save_gateway_config(port: u16, log_level: String) -> Result<String,
     if let Some(manager) = config.get_mut("manager").and_then(|v| v.as_object_mut()) {
         manager.insert("log_level".to_string(), json!(log_level));
     }
-    
+
     save_openclaw_config(&config)?;
     Ok("Gateway configuration saved".to_string())
 }
@@ -3816,12 +4430,11 @@ pub async fn save_gateway_config(port: u16, log_level: String) -> Result<String,
 pub async fn export_config(path: String) -> Result<String, String> {
     info!("[Config] Exporting config to: {}", path);
     let config = load_openclaw_config()?;
-    
+
     let content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
 
-    file::write_file(&path, &content)
-        .map_err(|e| format!("Failed to write export file: {}", e))?;
+    file::write_file(&path, &content).map_err(|e| format!("Failed to write export file: {}", e))?;
 
     Ok(format!("Configuration exported to {}", path))
 }
@@ -3831,11 +4444,11 @@ pub async fn export_config(path: String) -> Result<String, String> {
 pub async fn import_config(path: String) -> Result<String, String> {
     info!("[Config] Importing config from: {}", path);
 
-    let content = file::read_file(&path)
-        .map_err(|e| format!("Failed to read import file: {}", e))?;
+    let content =
+        file::read_file(&path).map_err(|e| format!("Failed to read import file: {}", e))?;
 
-    let new_config: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Invalid JSON file: {}", e))?;
+    let new_config: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Invalid JSON file: {}", e))?;
 
     if !new_config.is_object() {
         return Err("Imported file is not a valid configuration object".to_string());
