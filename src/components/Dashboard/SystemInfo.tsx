@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-shell';
 import {
@@ -13,21 +13,7 @@ import {
   RefreshCw,
   Server,
 } from 'lucide-react';
-import { isTauri } from '../../lib/tauri';
-
-interface EnvironmentStatus {
-  node_installed: boolean;
-  node_version: string | null;
-  node_version_ok: boolean;
-  git_installed: boolean;
-  git_version: string | null;
-  openclaw_installed: boolean;
-  openclaw_version: string | null;
-  gateway_service_installed: boolean;
-  config_dir_exists: boolean;
-  ready: boolean;
-  os: string;
-}
+import { useAppStore } from '../../stores/appStore';
 
 interface InstallResult {
   success: boolean;
@@ -50,50 +36,31 @@ interface Requirement {
 }
 
 export function SystemInfo() {
-  const [envStatus, setEnvStatus] = useState<EnvironmentStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Get environment state from store
+  const environment = useAppStore((state) => state.environment);
+  const isCheckingEnvironment = useAppStore((state) => state.isCheckingEnvironment);
+  const environmentError = useAppStore((state) => state.environmentError);
+  const refreshEnvironment = useAppStore((state) => state.refreshEnvironment);
+  
   const [installing, setInstalling] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const checkEnvironment = async () => {
-    if (!isTauri()) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const status = await invoke<EnvironmentStatus>('check_environment');
-      setEnvStatus(status);
-      setError(null);
-    } catch (e) {
-      setError(`Failed to check environment: ${e}`);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    checkEnvironment();
-  }, []);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await checkEnvironment();
+    await refreshEnvironment();
   };
 
   const handleInstallNodejs = async () => {
     setInstalling('nodejs');
-    setError(null);
+    setLocalError(null);
     try {
       const result = await invoke<InstallResult>('install_nodejs');
       if (result.success) {
-        await checkEnvironment();
+        await refreshEnvironment();
       } else {
-        setError(result.error || result.message);
+        setLocalError(result.error || result.message);
       }
     } catch (e) {
-      setError(`Failed to install Node.js: ${e}`);
+      setLocalError(`Failed to install Node.js: ${e}`);
     } finally {
       setInstalling(null);
     }
@@ -101,17 +68,17 @@ export function SystemInfo() {
 
   const handleInstallOpenclaw = async () => {
     setInstalling('openclaw');
-    setError(null);
+    setLocalError(null);
     try {
       const result = await invoke<InstallResult>('install_openclaw');
       if (result.success) {
         await invoke<InstallResult>('init_openclaw_config');
-        await checkEnvironment();
+        await refreshEnvironment();
       } else {
-        setError(result.error || result.message);
+        setLocalError(result.error || result.message);
       }
     } catch (e) {
-      setError(`Failed to install OpenClaw: ${e}`);
+      setLocalError(`Failed to install OpenClaw: ${e}`);
     } finally {
       setInstalling(null);
     }
@@ -119,13 +86,13 @@ export function SystemInfo() {
 
   const handleInstallGateway = async () => {
     setInstalling('gateway');
-    setError(null);
+    setLocalError(null);
     try {
       await invoke<string>('install_gateway_service');
       // Gateway install opens an elevated terminal — user needs to complete it there
       // Don't auto-refresh; user clicks Refresh when done
     } catch (e) {
-      setError(`Failed to install Gateway Service: ${e}`);
+      setLocalError(`Failed to install Gateway Service: ${e}`);
     } finally {
       setInstalling(null);
     }
@@ -139,7 +106,8 @@ export function SystemInfo() {
     }
   };
 
-  if (loading) {
+  // Display loading state
+  if (isCheckingEnvironment && !environment) {
     return (
       <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
         <h3 className="text-lg font-semibold text-white mb-4">System Requirements</h3>
@@ -150,11 +118,14 @@ export function SystemInfo() {
     );
   }
 
-  if (!envStatus) {
+  if (!environment) {
     return (
       <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
         <h3 className="text-lg font-semibold text-white mb-4">System Requirements</h3>
         <p className="text-gray-400 text-sm">Unable to detect system environment.</p>
+        {environmentError && (
+          <p className="text-red-400 text-xs mt-2">{environmentError}</p>
+        )}
       </div>
     );
   }
@@ -165,10 +136,10 @@ export function SystemInfo() {
       name: 'Node.js',
       description: 'JavaScript runtime (v22+ required)',
       icon: <Cpu size={18} />,
-      installed: envStatus.node_installed && envStatus.node_version_ok,
-      version: envStatus.node_version,
-      versionOk: envStatus.node_version_ok,
-      versionNote: envStatus.node_installed && !envStatus.node_version_ok
+      installed: environment.node_installed && environment.node_version_ok,
+      version: environment.node_version,
+      versionOk: environment.node_version_ok,
+      versionNote: environment.node_installed && !environment.node_version_ok
         ? 'Version too old, requires v22+'
         : undefined,
       installAction: handleInstallNodejs,
@@ -180,8 +151,8 @@ export function SystemInfo() {
       name: 'Git',
       description: 'Version control for MCP & skill repos',
       icon: <GitBranch size={18} />,
-      installed: envStatus.git_installed,
-      version: envStatus.git_version,
+      installed: environment.git_installed,
+      version: environment.git_version,
       downloadUrl: 'https://git-scm.com/downloads',
       canAutoInstall: false,
     },
@@ -190,17 +161,17 @@ export function SystemInfo() {
       name: 'OpenClaw',
       description: 'AI agent framework',
       icon: <Package size={18} />,
-      installed: envStatus.openclaw_installed,
-      version: envStatus.openclaw_version,
+      installed: environment.openclaw_installed,
+      version: environment.openclaw_version,
       installAction: handleInstallOpenclaw,
       canAutoInstall: true,
     },
-    ...(envStatus.openclaw_installed ? [{
+    ...(environment.openclaw_installed ? [{
       id: 'gateway',
       name: 'Gateway Service',
       description: 'System service (requires admin)',
       icon: <Server size={18} />,
-      installed: envStatus.gateway_service_installed,
+      installed: environment.gateway_service_installed,
       version: null,
       installAction: handleInstallGateway,
       canAutoInstall: true,
@@ -232,11 +203,11 @@ export function SystemInfo() {
         </div>
         <button
           onClick={handleRefresh}
-          disabled={refreshing}
+          disabled={isCheckingEnvironment}
           className="p-2 text-gray-400 hover:text-white hover:bg-dark-600 rounded-lg transition-colors"
           title="Re-check requirements"
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={16} className={isCheckingEnvironment ? 'animate-spin' : ''} />
         </button>
       </div>
 
@@ -327,9 +298,9 @@ export function SystemInfo() {
       </div>
 
       {/* Error */}
-      {error && (
+      {(localError || environmentError) && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-red-400 text-xs">{error}</p>
+          <p className="text-red-400 text-xs">{localError || environmentError}</p>
         </div>
       )}
     </div>

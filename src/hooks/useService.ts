@@ -58,11 +58,11 @@ export function useService() {
     }
   }, [fetchStatus]);
 
-  // Auto refresh status
+  // Auto refresh status (every 5 seconds to reduce CPU usage)
   useEffect(() => {
     serviceLogger.debug('Start auto refresh status');
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000);
+    const interval = setInterval(fetchStatus, 5000);
     return () => {
       serviceLogger.debug('Stop auto refresh status');
       clearInterval(interval);

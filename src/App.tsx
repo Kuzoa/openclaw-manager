@@ -7,6 +7,8 @@ import { Header } from './components/Layout/Header';
 import { appLogger } from './lib/logger';
 import { isTauri } from './lib/tauri';
 import { Download, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAppStore } from './stores/appStore';
+import { useService } from './hooks/useService';
 
 // Lazy loaded page components
 const Dashboard = React.lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
@@ -20,26 +22,6 @@ const Agents = React.lazy(() => import('./components/Agents').then(module => ({ 
 
 export type PageType = 'dashboard' | 'mcp' | 'skills' | 'ai' | 'channels' | 'agents' | 'logs' | 'settings';
 
-export interface EnvironmentStatus {
-  node_installed: boolean;
-  node_version: string | null;
-  node_version_ok: boolean;
-  git_installed: boolean;
-  git_version: string | null;
-  openclaw_installed: boolean;
-  openclaw_version: string | null;
-  gateway_service_installed: boolean;
-  config_dir_exists: boolean;
-  ready: boolean;
-  os: string;
-}
-
-interface ServiceStatus {
-  running: boolean;
-  pid: number | null;
-  port: number;
-}
-
 interface UpdateInfo {
   update_available: boolean;
   current_version: string | null;
@@ -51,11 +33,6 @@ interface UpdateResult {
   success: boolean;
   message: string;
   error?: string;
-}
-
-interface SecureVersionInfo {
-  current_version: string;
-  is_secure: boolean;
 }
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
@@ -95,8 +72,15 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
-  const [envStatus, setEnvStatus] = useState<EnvironmentStatus | null>(null);
-  const [serviceStatus, setServiceStatus] = useState<ServiceStatus | null>(null);
+
+  // Initialize service status polling (useService manages serviceStatus in store)
+  useService();
+
+  // Get state from store
+  const environment = useAppStore((state) => state.environment);
+  const serviceStatus = useAppStore((state) => state.serviceStatus);
+  const checkEnvironment = useAppStore((state) => state.checkEnvironment);
+  const refreshEnvironment = useAppStore((state) => state.refreshEnvironment);
 
   // Update related state
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -113,26 +97,8 @@ function App() {
   const [managerUpdateResult, setManagerUpdateResult] = useState<UpdateResult | null>(null);
   const [managerUpdateObj, setManagerUpdateObj] = useState<any>(null);
 
-  // Security check state
-  const [secureVersionInfo, setSecureVersionInfo] = useState<SecureVersionInfo | null>(null);
-  const [showSecurityBanner, setShowSecurityBanner] = useState(false);
-
-  // Check environment
-  const checkEnvironment = useCallback(async () => {
-    if (!isTauri()) {
-      appLogger.warn('Not in Tauri environment, skipping environment check');
-      return;
-    }
-
-    appLogger.info('Starting system environment check...');
-    try {
-      const status = await invoke<EnvironmentStatus>('check_environment');
-      appLogger.info('Environment check completed', status);
-      setEnvStatus(status);
-    } catch (e) {
-      appLogger.error('Environment check failed', e);
-    }
-  }, []);
+  // Security check state - derived from environment.is_secure
+  const showSecurityBanner = environment?.is_secure === false;
 
   // Check for updates
   const checkUpdate = useCallback(async () => {
@@ -168,23 +134,6 @@ function App() {
     }
   }, []);
 
-  // Check security version
-  const checkSecurity = useCallback(async () => {
-    if (!isTauri()) return;
-
-    appLogger.info('Checking OpenClaw version security...');
-    try {
-      const info = await invoke<SecureVersionInfo>('check_secure_version');
-      appLogger.info('Security check result', info);
-      setSecureVersionInfo(info);
-      if (!info.is_secure) {
-        setShowSecurityBanner(true);
-      }
-    } catch (e) {
-      appLogger.error('Security check failed', e);
-    }
-  }, []);
-
   // Perform update
   const handleUpdate = async () => {
     setUpdating(true);
@@ -193,8 +142,8 @@ function App() {
       const result = await invoke<UpdateResult>('update_openclaw');
       setUpdateResult(result);
       if (result.success) {
-        // Re-check environment after successful update
-        await checkEnvironment();
+        // Refresh environment after successful update (invalidates cache and re-checks)
+        await refreshEnvironment();
         // Close notification after 3 seconds
         setTimeout(() => {
           setShowUpdateBanner(false);
@@ -258,45 +207,23 @@ function App() {
     checkEnvironment();
   }, [checkEnvironment]);
 
-  // Delay update check after startup (avoid blocking startup)
+  // Check for updates after environment check completes (non-blocking)
   useEffect(() => {
-    if (!isTauri()) return;
-    const timer1 = setTimeout(() => { checkUpdate(); }, 2000);
-    const timer2 = setTimeout(() => { checkManagerUpdate(); }, 6000);
+    if (!isTauri() || !environment) return;
+
+    // Environment check completed, delay update checks to avoid blocking
+    appLogger.info('Environment check completed, scheduling update checks...');
+    const timer1 = setTimeout(() => { checkUpdate(); }, 3000);
+    const timer2 = setTimeout(() => { checkManagerUpdate(); }, 5000);
     return () => { clearTimeout(timer1); clearTimeout(timer2); };
-  }, [checkUpdate, checkManagerUpdate]);
+  }, [environment, checkUpdate, checkManagerUpdate]);
 
-  // Check security after startup
-  useEffect(() => {
-    if (!isTauri()) return;
-    const timer = setTimeout(() => {
-      checkSecurity();
-    }, 1000); // Check shortly after startup
-    return () => clearTimeout(timer);
-  }, [checkSecurity]);
-
-  // Periodically get service status
-  useEffect(() => {
-    // Don't poll if not in Tauri environment
-    if (!isTauri()) return;
-
-    const fetchServiceStatus = async () => {
-      try {
-        const status = await invoke<ServiceStatus>('get_service_status');
-        setServiceStatus(status);
-      } catch {
-        // Silently handle polling errors
-      }
-    };
-    fetchServiceStatus();
-    const interval = setInterval(fetchServiceStatus, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Service status polling is handled by useService hook in Dashboard
 
   const handleSetupComplete = useCallback(() => {
     appLogger.info('Setup wizard completed');
-    checkEnvironment(); // Re-check environment
-  }, [checkEnvironment]);
+    refreshEnvironment(); // Refresh environment after setup
+  }, [refreshEnvironment]);
 
   // Page navigation handler
   const handleNavigate = (page: PageType) => {
@@ -312,7 +239,7 @@ function App() {
     };
 
     const pages: Record<PageType, JSX.Element> = {
-      dashboard: <Dashboard envStatus={envStatus} onSetupComplete={handleSetupComplete} />,
+      dashboard: <Dashboard environment={environment} onSetupComplete={handleSetupComplete} />,
       mcp: <MCP />,
       skills: <Skills />,
       ai: <AIConfig />,
@@ -320,7 +247,7 @@ function App() {
       agents: <Agents />,
 
       logs: <Logs />,
-      settings: <Settings onEnvironmentChange={checkEnvironment} />,
+      settings: <Settings onEnvironmentChange={refreshEnvironment} />,
     };
 
     return (
@@ -359,7 +286,7 @@ function App() {
 
       {/* Security Banner (High Priority) */}
       <AnimatePresence>
-        {showSecurityBanner && secureVersionInfo && !secureVersionInfo.is_secure && (
+        {showSecurityBanner && environment && (
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -371,7 +298,7 @@ function App() {
                 <AlertCircle size={20} className="text-white" />
                 <div>
                   <p className="text-sm font-bold text-white">
-                    Security Warning: Your OpenClaw version ({secureVersionInfo.current_version}) is insecure.
+                    Security Warning: Your OpenClaw version ({environment.openclaw_version}) is insecure.
                   </p>
                   <p className="text-xs text-white/90">
                     A version &ge; 2026.1.29 is required. Please update immediately.
@@ -379,10 +306,10 @@ function App() {
                 </div>
               </div>
               <button
-                onClick={() => setShowSecurityBanner(false)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors text-white/90 hover:text-white"
+                onClick={() => setShowUpdateBanner(true)}
+                className="px-4 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                <X size={16} />
+                Update Now
               </button>
             </div>
           </motion.div>

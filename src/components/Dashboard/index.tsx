@@ -1,55 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 import { StatusCard } from './StatusCard';
 import { QuickActions } from './QuickActions';
 import { SystemInfo } from './SystemInfo';
 import { Setup } from '../Setup';
-import { api, ServiceStatus, isTauri } from '../../lib/tauri';
-import { EnvironmentStatus } from '../../App';
+import { isTauri } from '../../lib/tauri';
+import { useAppStore } from '../../stores/appStore';
+import type { EnvironmentStatus } from '../../types';
 
 interface DashboardProps {
-  envStatus: EnvironmentStatus | null;
+  environment: EnvironmentStatus | null;
   onSetupComplete: () => void;
 }
 
-export function Dashboard({ envStatus, onSetupComplete }: DashboardProps) {
-  const [status, setStatus] = useState<ServiceStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+export function Dashboard({ environment, onSetupComplete }: DashboardProps) {
+  // Read service status from store (polling is handled by useService in App.tsx)
+  const serviceStatus = useAppStore((state) => state.serviceStatus);
   const [actionLoading, setActionLoading] = useState(false);
-
-  const fetchStatus = async () => {
-    if (!isTauri()) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const result = await api.getServiceStatus();
-      setStatus(result);
-    } catch {
-      // Handle silently
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStatus();
-    if (!isTauri()) return;
-
-    const statusInterval = setInterval(fetchStatus, 3000);
-
-    return () => {
-      clearInterval(statusInterval);
-    };
-  }, []);
 
   const handleStart = async () => {
     if (!isTauri()) return;
     setActionLoading(true);
     try {
-      await api.startService();
-      await fetchStatus();
+      await invoke('start_service');
     } catch (e) {
       console.error('Start failed:', e);
     } finally {
@@ -61,8 +35,7 @@ export function Dashboard({ envStatus, onSetupComplete }: DashboardProps) {
     if (!isTauri()) return;
     setActionLoading(true);
     try {
-      await api.stopService();
-      await fetchStatus();
+      await invoke('stop_service');
     } catch (e) {
       console.error('Stop failed:', e);
     } finally {
@@ -74,8 +47,7 @@ export function Dashboard({ envStatus, onSetupComplete }: DashboardProps) {
     if (!isTauri()) return;
     setActionLoading(true);
     try {
-      await api.restartService();
-      await fetchStatus();
+      await invoke('restart_service');
     } catch (e) {
       console.error('Restart failed:', e);
     } finally {
@@ -88,7 +60,6 @@ export function Dashboard({ envStatus, onSetupComplete }: DashboardProps) {
     setActionLoading(true);
     try {
       await invoke<string>('kill_all_port_processes');
-      await fetchStatus();
     } catch (e) {
       console.error('Kill All failed:', e);
     } finally {
@@ -112,7 +83,7 @@ export function Dashboard({ envStatus, onSetupComplete }: DashboardProps) {
   };
 
   // Check if environment is ready
-  const needsSetup = envStatus && !envStatus.ready;
+  const needsSetup = environment && !environment.ready;
 
   return (
     <div className="h-full overflow-y-auto scroll-container pr-2">
@@ -131,13 +102,13 @@ export function Dashboard({ envStatus, onSetupComplete }: DashboardProps) {
 
         {/* Service status card */}
         <motion.div variants={itemVariants}>
-          <StatusCard status={status} loading={loading} />
+          <StatusCard status={serviceStatus} loading={false} />
         </motion.div>
 
         {/* Quick actions */}
         <motion.div variants={itemVariants}>
           <QuickActions
-            status={status}
+            status={serviceStatus}
             loading={actionLoading}
             onStart={handleStart}
             onStop={handleStop}

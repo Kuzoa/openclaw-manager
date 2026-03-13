@@ -12,19 +12,7 @@ import {
   Package
 } from 'lucide-react';
 import { setupLogger } from '../../lib/logger';
-
-interface EnvironmentStatus {
-  node_installed: boolean;
-  node_version: string | null;
-  node_version_ok: boolean;
-  git_installed: boolean;
-  git_version: string | null;
-  openclaw_installed: boolean;
-  openclaw_version: string | null;
-  config_dir_exists: boolean;
-  ready: boolean;
-  os: string;
-}
+import { useAppStore } from '../../stores/appStore';
 
 interface InstallResult {
   success: boolean;
@@ -39,22 +27,20 @@ interface SetupProps {
 }
 
 export function Setup({ onComplete, embedded = false }: SetupProps) {
-  const [envStatus, setEnvStatus] = useState<EnvironmentStatus | null>(null);
-  const [checking, setChecking] = useState(true);
+  // Get environment state from store
+  const environment = useAppStore((state) => state.environment);
+  const isCheckingEnvironment = useAppStore((state) => state.isCheckingEnvironment);
+  const environmentError = useAppStore((state) => state.environmentError);
+  const refreshEnvironment = useAppStore((state) => state.refreshEnvironment);
+  
   const [installing, setInstalling] = useState<'nodejs' | 'openclaw' | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [step, setStep] = useState<'check' | 'install' | 'complete'>('check');
 
-  const checkEnvironment = async () => {
-    setupLogger.info('Checking system environment...');
-    setChecking(true);
-    setError(null);
-    try {
-      const status = await invoke<EnvironmentStatus>('check_environment');
-      setupLogger.state('Environment status', status);
-      setEnvStatus(status);
-
-      if (status.ready) {
+  // Update step based on environment status
+  useEffect(() => {
+    if (environment) {
+      if (environment.ready) {
         setupLogger.info('✅ Environment ready');
         setStep('complete');
         // Delay before transition to let user see success status
@@ -63,24 +49,25 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
         setupLogger.warn('Environment not ready, dependencies need to be installed');
         setStep('install');
       }
-    } catch (e) {
-      setupLogger.error('Environment check failed', e);
-      setError(`Environment check failed: ${e}`);
-    } finally {
-      setChecking(false);
     }
-  };
+  }, [environment, onComplete]);
 
+  // Log initialization
   useEffect(() => {
     setupLogger.info('Setup component initialized');
-    checkEnvironment();
   }, []);
+
+  const handleRefresh = async () => {
+    setupLogger.info('Refreshing environment status...');
+    await refreshEnvironment();
+    setLocalError(null);
+  };
 
   const handleInstallNodejs = async () => {
     setupLogger.action('Install Node.js');
     setupLogger.info('Starting Node.js installation...');
     setInstalling('nodejs');
-    setError(null);
+    setLocalError(null);
 
     try {
       // Try direct installation first
@@ -88,23 +75,23 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
 
       if (result.success) {
         setupLogger.info('✅ Node.js installed successfully');
-        // Re-check environment
-        await checkEnvironment();
+        // Re-check environment via store
+        await refreshEnvironment();
       } else if (result.message.includes('restart') || result.message.includes('重启')) {
         // Need to restart application
-        setError('Node.js installation complete, please restart the application for environment variables to take effect');
+        setLocalError('Node.js installation complete, please restart the application for environment variables to take effect');
       } else {
         // Open terminal for manual installation
         await invoke<string>('open_install_terminal', { installType: 'nodejs' });
-        setError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
+        setLocalError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
       }
     } catch (e) {
       // If automatic installation fails, open terminal
       try {
         await invoke<string>('open_install_terminal', { installType: 'nodejs' });
-        setError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
+        setLocalError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
       } catch (termErr) {
-        setError(`Installation failed: ${e}. ${termErr}`);
+        setLocalError(`Installation failed: ${e}. ${termErr}`);
       }
     } finally {
       setInstalling(null);
@@ -115,7 +102,7 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
     setupLogger.action('Install OpenClaw');
     setupLogger.info('Starting OpenClaw installation...');
     setInstalling('openclaw');
-    setError(null);
+    setLocalError(null);
 
     try {
       const result = await invoke<InstallResult>('install_openclaw');
@@ -125,21 +112,21 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
         // Initialize config
         await invoke<InstallResult>('init_openclaw_config');
         setupLogger.info('✅ Config initialization complete');
-        // Re-check environment
-        await checkEnvironment();
+        // Re-check environment via store
+        await refreshEnvironment();
       } else {
         setupLogger.warn('Automatic installation failed, opening terminal for manual installation');
         // Open terminal for manual installation
         await invoke<string>('open_install_terminal', { installType: 'openclaw' });
-        setError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
+        setLocalError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
       }
     } catch (e) {
       setupLogger.error('Installation failed, trying to open terminal', e);
       try {
         await invoke<string>('open_install_terminal', { installType: 'openclaw' });
-        setError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
+        setLocalError('Installation terminal opened, please complete the installation in the terminal then click "Re-check"');
       } catch (termErr) {
-        setError(`Installation failed: ${e}. ${termErr}`);
+        setLocalError(`Installation failed: ${e}. ${termErr}`);
       }
     } finally {
       setInstalling(null);
@@ -157,10 +144,12 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
 
   // Render installation content (reusable in embedded and fullscreen modes)
   const renderContent = () => {
+    const error = localError || environmentError;
+    
     return (
       <AnimatePresence mode="wait">
         {/* Checking state */}
-        {checking && (
+        {isCheckingEnvironment && !environment && (
           <motion.div
             key="checking"
             initial={{ opacity: 0 }}
@@ -174,7 +163,7 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
         )}
 
         {/* Installation step */}
-        {!checking && step === 'install' && envStatus && (
+        {!isCheckingEnvironment && step === 'install' && environment && (
           <motion.div
             key="install"
             initial={{ opacity: 0 }}
@@ -186,14 +175,14 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
             {!embedded && (
               <div className="flex items-center justify-between text-sm text-dark-400 pb-4 border-b border-dark-700">
                 <span>Operating System</span>
-                <span className="text-dark-200">{getOsName(envStatus.os)}</span>
+                <span className="text-dark-200">{getOsName(environment.os)}</span>
               </div>
             )}
 
             {/* Node.js status */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${envStatus.node_installed && envStatus.node_version_ok
+                <div className={`p-2 rounded-lg ${environment.node_installed && environment.node_version_ok
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-red-500/20 text-red-400'
                   }`}>
@@ -202,14 +191,14 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
                 <div>
                   <p className="text-white font-medium">Node.js</p>
                   <p className="text-sm text-dark-400">
-                    {envStatus.node_version
-                      ? `${envStatus.node_version} ${envStatus.node_version_ok ? '✓' : '(requires v22+)'}`
+                    {environment.node_version
+                      ? `${environment.node_version} ${environment.node_version_ok ? '✓' : '(requires v22+)'}`
                       : 'Not installed'}
                   </p>
                 </div>
               </div>
 
-              {envStatus.node_installed && envStatus.node_version_ok ? (
+              {environment.node_installed && environment.node_version_ok ? (
                 <CheckCircle2 className="w-6 h-6 text-green-400" />
               ) : (
                 <button
@@ -235,7 +224,7 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
             {/* OpenClaw status */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${envStatus.openclaw_installed
+                <div className={`p-2 rounded-lg ${environment.openclaw_installed
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-red-500/20 text-red-400'
                   }`}>
@@ -244,20 +233,20 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
                 <div>
                   <p className="text-white font-medium">OpenClaw</p>
                   <p className="text-sm text-dark-400">
-                    {envStatus.openclaw_version || 'Not installed'}
+                    {environment.openclaw_version || 'Not installed'}
                   </p>
                 </div>
               </div>
 
-              {envStatus.openclaw_installed ? (
+              {environment.openclaw_installed ? (
                 <CheckCircle2 className="w-6 h-6 text-green-400" />
               ) : (
                 <button
                   onClick={handleInstallOpenclaw}
-                  disabled={installing !== null || !envStatus.node_version_ok}
-                  className={`btn-primary text-sm px-4 py-2 flex items-center gap-2 ${!envStatus.node_version_ok ? 'opacity-50 cursor-not-allowed' : ''
+                  disabled={installing !== null || !environment.node_version_ok}
+                  className={`btn-primary text-sm px-4 py-2 flex items-center gap-2 ${!environment.node_version_ok ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
-                  title={!envStatus.node_version_ok ? 'Please install Node.js first' : ''}
+                  title={!environment.node_version_ok ? 'Please install Node.js first' : ''}
                 >
                   {installing === 'openclaw' ? (
                     <>
@@ -288,15 +277,15 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
             {/* Action buttons */}
             <div className="flex gap-3 pt-4 border-t border-dark-700/50">
               <button
-                onClick={checkEnvironment}
-                disabled={checking || installing !== null}
+                onClick={handleRefresh}
+                disabled={isCheckingEnvironment || installing !== null}
                 className="flex-1 btn-secondary py-2.5 flex items-center justify-center gap-2"
               >
-                <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isCheckingEnvironment ? 'animate-spin' : ''}`} />
                 Re-check
               </button>
 
-              {envStatus.ready && (
+              {environment.ready && (
                 <button
                   onClick={onComplete}
                   className="flex-1 btn-primary py-2.5 flex items-center justify-center gap-2"
@@ -323,7 +312,7 @@ export function Setup({ onComplete, embedded = false }: SetupProps) {
         )}
 
         {/* Complete state */}
-        {!checking && step === 'complete' && (
+        {!isCheckingEnvironment && step === 'complete' && (
           <motion.div
             key="complete"
             initial={{ opacity: 0, scale: 0.9 }}
