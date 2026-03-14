@@ -20,6 +20,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Test coverage
+coverage/
+.nyc_output/
+
+# Vitest
+.vitest/
+
 # Environment
 .env
 .env.local

@@ -4,13 +4,9 @@
     windows_subsystem = "windows"
 )]
 
-mod commands;
-mod models;
-mod utils;
-
-use commands::{config, diagnostics, installer, process, service, skills};
+use openclaw_manager::commands::{config, diagnostics, installer, process, service, skills};
+use openclaw_manager::utils::log_sanitizer;
 use std::io::Write;
-use utils::log_sanitizer;
 
 fn main() {
     // Initialize logging - show info level logs by default
