@@ -9,7 +9,7 @@ use super::shell;
 pub static ENVIRONMENT_CACHE: EnvironmentCache = EnvironmentCache::new();
 
 /// A cached value that distinguishes between "not yet initialized" and "initialized to None"
-/// 
+///
 /// - `None` = not yet initialized (lazy load pending)
 /// - `Some(None)` = initialized, but value is None (e.g., OpenClaw not installed)
 /// - `Some(Some(value))` = initialized with a value

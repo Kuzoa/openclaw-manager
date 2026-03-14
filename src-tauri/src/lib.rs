@@ -10,5 +10,5 @@ pub mod utils;
 
 // Re-export commonly used types for integration tests
 pub use commands::{config, diagnostics, installer, process, service, skills};
-pub use models::{status::ServiceStatus, config::*};
+pub use models::{config::*, status::ServiceStatus};
 pub use utils::{cache::EnvironmentCache, file, log_sanitizer, platform, shell};

@@ -23,12 +23,12 @@ const SERVICE_PORT: u16 = 18789;
 /// Returns true if gateway is healthy and responding
 fn check_gateway_health_http(port: u16) -> bool {
     let url = format!("http://127.0.0.1:{}/health", port);
-    match ureq::get(&url)
-        .timeout(Duration::from_secs(1))
-        .call()
-    {
+    match ureq::get(&url).timeout(Duration::from_secs(1)).call() {
         Ok(response) => {
-            debug!("[Service] Health check HTTP response: {}", response.status());
+            debug!(
+                "[Service] Health check HTTP response: {}",
+                response.status()
+            );
             response.status() == 200
         }
         Err(e) => {
@@ -134,7 +134,7 @@ fn find_all_port_pids(port: u16) -> Vec<u32> {
 /// Get service status
 /// Uses HTTP health check to verify the gateway is actually responding,
 /// not just that the port is busy (which could be svchost.exe or another process).
-/// 
+///
 /// Optimization: Check port first, skip health check if port is not listening.
 /// Uses direct HTTP request instead of spawning Node.js process (much faster).
 #[command]

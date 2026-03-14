@@ -1,7 +1,6 @@
 /// Service status tests
 /// Note: Process management tests are marked with #[ignore] as they require
 /// actual system processes and may not work in all environments.
-
 use openclaw_manager::models::ServiceStatus;
 
 mod service_status {
@@ -47,7 +46,7 @@ mod service_status {
     #[test]
     fn test_service_status_default() {
         let status = ServiceStatus::default();
-        
+
         assert!(!status.running);
         assert!(status.pid.is_none());
         assert_eq!(status.port, 18789);
@@ -101,7 +100,7 @@ mod platform_tests {
     #[test]
     fn test_config_dir_format() {
         let config_dir = openclaw_manager::utils::platform::get_config_dir();
-        
+
         // Should contain .openclaw
         assert!(config_dir.contains(".openclaw"));
     }
@@ -109,7 +108,7 @@ mod platform_tests {
 
 /// Port checking tests (may not work in all environments)
 mod port_tests {
-    use std::net::{TcpListener, Ipv4Addr, SocketAddrV4};
+    use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
 
     #[test]
     fn test_port_not_in_use() {
@@ -121,6 +120,9 @@ mod port_tests {
         // Now the port should be free
         // This is a basic sanity check that port binding works
         let result = TcpListener::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, port));
-        assert!(result.is_ok(), "Port should be available after closing listener");
+        assert!(
+            result.is_ok(),
+            "Port should be available after closing listener"
+        );
     }
 }
