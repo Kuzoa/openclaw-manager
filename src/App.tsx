@@ -81,6 +81,8 @@ function App() {
   const serviceStatus = useAppStore((state) => state.serviceStatus);
   const checkEnvironment = useAppStore((state) => state.checkEnvironment);
   const refreshEnvironment = useAppStore((state) => state.refreshEnvironment);
+  const notifications = useAppStore((state) => state.notifications);
+  const removeNotification = useAppStore((state) => state.removeNotification);
 
   // Update related state
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -219,6 +221,19 @@ function App() {
   }, [environment, checkUpdate, checkManagerUpdate]);
 
   // Service status polling is handled by useService hook in Dashboard
+
+  // Auto-remove notifications after 3 seconds
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const timer = setTimeout(() => {
+        const oldestNotification = notifications[0];
+        if (oldestNotification) {
+          removeNotification(oldestNotification.id);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notifications, removeNotification]);
 
   const handleSetupComplete = useCallback(() => {
     appLogger.info('Setup wizard completed');
@@ -484,6 +499,41 @@ function App() {
             </React.Suspense>
           </ErrorBoundary>
         </main>
+      </div>
+
+      {/* Notification toasts */}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+        <AnimatePresence>
+          {notifications.map((notification) => (
+            <motion.div
+              key={notification.id}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 100 }}
+              className={`px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[250px] ${
+                notification.type === 'success' ? 'bg-green-600' :
+                notification.type === 'error' ? 'bg-red-600' :
+                notification.type === 'warning' ? 'bg-yellow-600' :
+                'bg-blue-600'
+              }`}
+            >
+              {notification.type === 'success' && <CheckCircle size={18} className="text-white" />}
+              {notification.type === 'error' && <AlertCircle size={18} className="text-white" />}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">{notification.title}</p>
+                {notification.message && (
+                  <p className="text-xs text-white/80 mt-0.5">{notification.message}</p>
+                )}
+              </div>
+              <button
+                onClick={() => removeNotification(notification.id)}
+                className="p-1 hover:bg-white/20 rounded transition-colors text-white/70 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );

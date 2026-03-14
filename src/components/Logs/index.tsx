@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { logStore, LogEntry } from '../../lib/logger';
+import { exportLogFile } from '../../lib/fileExport';
+import { useAppStore } from '../../stores/appStore';
 
 type FilterLevel = 'all' | 'debug' | 'info' | 'warn' | 'error';
 
@@ -78,25 +80,26 @@ export function Logs() {
   };
 
   // Export logs
-  const handleExport = () => {
-    const content = filteredLogs.map(log => {
-      const time = log.timestamp.toLocaleTimeString('zh-CN', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
+  const handleExport = async () => {
+    const { addNotification } = useAppStore.getState();
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
+    const defaultFilename = `openclaw-manager-logs ${dateStr} ${timeStr}.txt`;
+    
+    try {
+      const success = await exportLogFile(filteredLogs, defaultFilename);
+      if (success) {
+        addNotification({ type: 'success', title: '日志导出成功' });
+      }
+      // User cancelled - no notification
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: '导出失败',
+        message: error instanceof Error ? error.message : String(error),
       });
-      const args = log.args.length > 0 ? ' ' + JSON.stringify(log.args) : '';
-      return `[${time}] [${log.level.toUpperCase()}] [${log.module}] ${log.message}${args}`;
-    }).join('\n');
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `openclaw-manager-logs-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    }
   };
 
   // Format time

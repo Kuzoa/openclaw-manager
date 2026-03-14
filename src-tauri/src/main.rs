@@ -4,7 +4,7 @@
     windows_subsystem = "windows"
 )]
 
-use openclaw_manager::commands::{config, diagnostics, installer, process, service, skills};
+use openclaw_manager::commands::{config, diagnostics, installer, logs, process, service, skills};
 use openclaw_manager::utils::log_sanitizer;
 use std::io::Write;
 
@@ -121,6 +121,8 @@ fn main() {
             skills::uninstall_skill,
             skills::uninstall_skill,
             skills::uninstall_clawhub,
+            // Logs management
+            logs::export_logs,
             // Multi-Agent Routing
             config::get_openclaw_home_dir,
             config::get_agents_config,
