@@ -1,4 +1,25 @@
 /**
+ * Result of a single detection step
+ */
+export type DetectionResult = 'found' | 'not_found' | 'error';
+
+/**
+ * A single step in the environment detection process
+ */
+export interface DetectionStep {
+  /** Phase name (e.g., "Phase 1: npm global prefix") */
+  phase: string;
+  /** Action performed (e.g., "Checking npm prefix") */
+  action: string;
+  /** Target path or item being checked */
+  target: string;
+  /** Result of this detection step */
+  result: DetectionResult;
+  /** Additional message (typically for errors) */
+  message?: string;
+}
+
+/**
  * Environment status returned by the backend check_environment command
  * 
  * This is the unified type definition used across the application.
@@ -29,4 +50,6 @@ export interface EnvironmentStatus {
   os: string;
   /** Whether OpenClaw version is secure (>= 2026.1.29) */
   is_secure: boolean;
+  /** Detection steps showing how OpenClaw was found (or not found) */
+  detection_steps: DetectionStep[];
 }

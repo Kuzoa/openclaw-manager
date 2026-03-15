@@ -1,3 +1,4 @@
+use crate::models::{DetectionResult, DetectionStep};
 use log::{debug, info, warn};
 use std::sync::RwLock;
 
@@ -50,6 +51,8 @@ pub struct EnvironmentCache {
     pub(crate) git_version: CachedValue<String>,
     /// Whether OpenClaw version is secure (>= 2026.1.29)
     pub(crate) is_secure: CachedValue<bool>,
+    /// Detection steps for OpenClaw path detection
+    pub(crate) detection_steps: CachedValue<Vec<DetectionStep>>,
 }
 
 impl EnvironmentCache {
@@ -62,6 +65,7 @@ impl EnvironmentCache {
             node_version: RwLock::new(None),
             git_version: RwLock::new(None),
             is_secure: RwLock::new(None),
+            detection_steps: RwLock::new(None),
         }
     }
 
@@ -139,57 +143,143 @@ impl EnvironmentCache {
             return guard.as_ref().unwrap().clone();
         }
 
-        // Cache miss - detect path
+        // Cache miss - detect path with steps
         info!("[Cache] openclaw_path: cache miss, detecting...");
-        let result = self.detect_openclaw_path_internal();
+        let (result, steps) = self.detect_openclaw_path_with_steps_internal();
 
         // Write to cache (wrap in Some to mark as initialized)
         *guard = Some(result.clone());
+        
+        // Also cache the detection steps
+        {
+            let mut steps_guard = self.detection_steps.write().unwrap();
+            *steps_guard = Some(Some(steps));
+        }
+        
         result
     }
 
-    /// Internal function to detect OpenClaw path
-    /// Replicates the logic from shell::get_openclaw_path but uses cached npm_prefix
-    fn detect_openclaw_path_internal(&self) -> Option<String> {
-        // Phase 1: Use cached npm prefix
-        if let Some(prefix) = self.get_npm_prefix() {
-            let openclaw_path = if platform::is_windows() {
-                format!("{}\\openclaw.cmd", prefix)
-            } else {
-                format!("{}/bin/openclaw", prefix)
-            };
+    /// Get detection steps for OpenClaw path detection
+    /// 
+    /// Returns the cached detection steps, or detects them if not yet cached.
+    /// This provides detailed information about how OpenClaw was found (or not found).
+    pub fn get_detection_steps(&self) -> Vec<DetectionStep> {
+        // First check with read lock (fast path)
+        {
+            let guard = self.detection_steps.read().unwrap();
+            if guard.is_some() {
+                return guard.as_ref().unwrap().clone().unwrap_or_default();
+            }
+        }
 
-            debug!("[Cache] Checking npm prefix path: {}", openclaw_path);
-            if std::path::Path::new(&openclaw_path).exists() {
-                info!("[Cache] Found openclaw via npm prefix: {}", openclaw_path);
-                return Some(openclaw_path);
+        // Ensure path detection runs (which also populates steps)
+        self.get_openclaw_path();
+
+        // Return the now-cached steps
+        let guard = self.detection_steps.read().unwrap();
+        guard.as_ref().unwrap().clone().unwrap_or_default()
+    }
+
+    /// Internal function to detect OpenClaw path with detailed steps
+    /// Returns (path, detection_steps)
+    fn detect_openclaw_path_with_steps_internal(&self) -> (Option<String>, Vec<DetectionStep>) {
+        let mut steps: Vec<DetectionStep> = Vec::new();
+
+        // Phase 1: Use cached npm prefix
+        let npm_prefix_result = self.get_npm_prefix();
+        match &npm_prefix_result {
+            Some(prefix) => {
+                let openclaw_path = if platform::is_windows() {
+                    format!("{}\\openclaw.cmd", prefix)
+                } else {
+                    format!("{}/bin/openclaw", prefix)
+                };
+
+                info!("[Cache] Phase 1: Checking npm prefix path: {}", openclaw_path);
+                
+                if std::path::Path::new(&openclaw_path).exists() {
+                    info!("[Cache] Found openclaw via npm prefix: {}", openclaw_path);
+                    steps.push(DetectionStep {
+                        phase: "Phase 1: npm global prefix".to_string(),
+                        action: "Checking npm prefix".to_string(),
+                        target: openclaw_path.clone(),
+                        result: DetectionResult::Found,
+                        message: None,
+                    });
+                    return (Some(openclaw_path), steps);
+                } else {
+                    steps.push(DetectionStep {
+                        phase: "Phase 1: npm global prefix".to_string(),
+                        action: "Checking npm prefix".to_string(),
+                        target: openclaw_path,
+                        result: DetectionResult::NotFound,
+                        message: None,
+                    });
+                }
+            }
+            None => {
+                // npm prefix check failed
+                steps.push(DetectionStep {
+                    phase: "Phase 1: npm global prefix".to_string(),
+                    action: "Checking npm prefix".to_string(),
+                    target: "npm config get prefix".to_string(),
+                    result: DetectionResult::Error,
+                    message: Some("Failed to get npm global prefix".to_string()),
+                });
             }
         }
 
         // Phase 2: Check hardcoded paths
         info!("[Cache] Phase 2: Checking hardcoded paths...");
-
-        if platform::is_windows() {
-            let possible_paths = get_windows_openclaw_paths();
-            for path in possible_paths {
-                if std::path::Path::new(&path).exists() {
-                    info!("[Cache] Found openclaw at {}", path);
-                    return Some(path);
-                }
-            }
+        let possible_paths = if platform::is_windows() {
+            get_windows_openclaw_paths()
         } else {
-            let possible_paths = get_unix_openclaw_paths();
+            get_unix_openclaw_paths()
+        };
+
+        if !possible_paths.is_empty() {
             for path in possible_paths {
                 if std::path::Path::new(&path).exists() {
                     info!("[Cache] Found openclaw at {}", path);
-                    return Some(path);
+                    steps.push(DetectionStep {
+                        phase: "Phase 2: Hardcoded paths".to_string(),
+                        action: "Checking path".to_string(),
+                        target: path.clone(),
+                        result: DetectionResult::Found,
+                        message: None,
+                    });
+                    return (Some(path), steps);
+                } else {
+                    steps.push(DetectionStep {
+                        phase: "Phase 2: Hardcoded paths".to_string(),
+                        action: "Checking path".to_string(),
+                        target: path,
+                        result: DetectionResult::NotFound,
+                        message: None,
+                    });
                 }
             }
         }
 
         // Phase 3: Check PATH
+        info!("[Cache] Phase 3: Checking PATH...");
         if shell::command_exists("openclaw") {
-            return Some("openclaw".to_string());
+            steps.push(DetectionStep {
+                phase: "Phase 3: PATH environment".to_string(),
+                action: "Checking PATH".to_string(),
+                target: "openclaw".to_string(),
+                result: DetectionResult::Found,
+                message: None,
+            });
+            return (Some("openclaw".to_string()), steps);
+        } else {
+            steps.push(DetectionStep {
+                phase: "Phase 3: PATH environment".to_string(),
+                action: "Checking PATH".to_string(),
+                target: "openclaw".to_string(),
+                result: DetectionResult::NotFound,
+                message: None,
+            });
         }
 
         // Last resort: search via user shell (Unix only)
@@ -197,12 +287,31 @@ impl EnvironmentCache {
             if let Ok(path) = shell::run_bash_output("source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null; which openclaw 2>/dev/null") {
                 if !path.is_empty() && std::path::Path::new(&path).exists() {
                     info!("[Cache] Found openclaw via user shell: {}", path);
-                    return Some(path);
+                    // This is still part of Phase 3 - found via shell
+                    steps.push(DetectionStep {
+                        phase: "Phase 3: PATH environment".to_string(),
+                        action: "Checking user shell".to_string(),
+                        target: path.clone(),
+                        result: DetectionResult::Found,
+                        message: None,
+                    });
+                    return (Some(path), steps);
                 }
             }
         }
 
-        None
+        // Ensure at least one step exists if nothing found
+        if steps.is_empty() {
+            steps.push(DetectionStep {
+                phase: "System".to_string(),
+                action: "Environment check".to_string(),
+                target: "openclaw".to_string(),
+                result: DetectionResult::NotFound,
+                message: Some("No detection phases found any openclaw installation".to_string()),
+            });
+        }
+
+        (None, steps)
     }
 
     /// Get OpenClaw version with lazy initialization
@@ -459,6 +568,10 @@ impl EnvironmentCache {
         }
         {
             let mut guard = self.is_secure.write().unwrap();
+            *guard = None;
+        }
+        {
+            let mut guard = self.detection_steps.write().unwrap();
             *guard = None;
         }
 

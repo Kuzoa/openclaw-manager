@@ -1,3 +1,4 @@
+use crate::models::DetectionStep;
 use crate::utils::{log_sanitizer, platform, shell};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,8 @@ pub struct EnvironmentStatus {
     pub os: String,
     /// Whether OpenClaw version is secure (>= 2026.1.29)
     pub is_secure: bool,
+    /// Detection steps showing how OpenClaw was found (or not found)
+    pub detection_steps: Vec<DetectionStep>,
 }
 
 /// Installation progress
@@ -62,17 +65,19 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
 
     // Run expensive checks concurrently using cache
     info!("[Environment Check] Checking Node.js, Git, and OpenClaw concurrently (using cache)...");
-    let (node_res, git_res, openclaw_res, is_secure_res) = tokio::join!(
+    let (node_res, git_res, openclaw_res, is_secure_res, detection_steps_res) = tokio::join!(
         tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_node_version()),
         tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_git_version()),
         tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_openclaw_version()),
-        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_is_secure())
+        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_is_secure()),
+        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_detection_steps())
     );
 
     let node_version = node_res.unwrap_or(None);
     let git_version = git_res.unwrap_or(None);
     let openclaw_version = openclaw_res.unwrap_or(None);
     let is_secure = is_secure_res.unwrap_or(None).unwrap_or(false);
+    let detection_steps = detection_steps_res.unwrap_or_default();
 
     let node_installed = node_version.is_some();
     let node_version_ok = check_node_version_requirement(&node_version);
@@ -136,6 +141,7 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
         ready,
         os,
         is_secure,
+        detection_steps,
     })
 }
 
