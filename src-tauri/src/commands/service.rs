@@ -3,12 +3,70 @@ use crate::utils::shell;
 use log::{debug, error, info, warn};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 use tauri::command;
 
 // Track if service stop was intentional (manual stop) vs unexpected (crash/restart command)
 static INTENTIONAL_STOP: AtomicBool = AtomicBool::new(false);
+
+/// Cache for service status to detect state changes
+#[derive(Clone, PartialEq)]
+pub(crate) struct ServiceStatusCache {
+    pub(crate) running: bool,
+    pub(crate) pid: Option<u32>,
+}
+
+impl Default for ServiceStatusCache {
+    fn default() -> Self {
+        Self {
+            running: false,
+            pid: None,
+        }
+    }
+}
+
+/// Global cache for last known service status
+static LAST_STATUS: OnceLock<Mutex<ServiceStatusCache>> = OnceLock::new();
+
+/// Get or initialize the status cache
+pub(crate) fn get_or_init_cache() -> &'static Mutex<ServiceStatusCache> {
+    LAST_STATUS.get_or_init(|| Mutex::new(ServiceStatusCache::default()))
+}
+
+/// Log status change only when state changes (INFO on change, DEBUG otherwise)
+/// Note: When running=false, pid should be None to match the ServiceStatus returned.
+pub(crate) fn log_status_change(running: bool, pid: Option<u32>) {
+    let cache = get_or_init_cache();
+    let mut last = cache.lock().unwrap_or_else(|e| e.into_inner());
+
+    let changed = last.running != running;
+
+    if changed {
+        let old_status = if last.running { "running" } else { "stopped" };
+        let new_status = if running { "running" } else { "stopped" };
+
+        if running {
+            info!(
+                "[Service] Status changed: {} -> {} (PID: {})",
+                old_status,
+                new_status,
+                pid.unwrap_or(0)
+            );
+        } else {
+            info!("[Service] Status changed: {} -> {}", old_status, new_status);
+        }
+
+        last.running = running;
+        last.pid = pid;
+    } else {
+        debug!(
+            "[Service] get_service_status: running={}, pid={:?} (unchanged)",
+            running, pid
+        );
+    }
+}
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
@@ -146,19 +204,14 @@ pub async fn get_service_status() -> Result<ServiceStatus, String> {
     let port_start = Instant::now();
     let pid = check_port_listening(SERVICE_PORT);
     let port_duration = port_start.elapsed();
-    let total_duration = total_start.elapsed();
+    let _total_duration = total_start.elapsed();
 
     // If port is not listening, gateway is definitely not running
     // Skip the health check entirely
     let pid_val = match pid {
         Some(p) => p,
         None => {
-            // Log when port is not listening (for debugging)
-            info!(
-                "[Service] get_service_status: port={}ms, health=skipped, total={}ms, running=false (port not listening)",
-                port_duration.as_millis(),
-                total_duration.as_millis()
-            );
+            log_status_change(false, None);
             return Ok(ServiceStatus {
                 running: false,
                 pid: None,
@@ -175,16 +228,17 @@ pub async fn get_service_status() -> Result<ServiceStatus, String> {
     let health_start = Instant::now();
     let health_ok = check_gateway_health_http(SERVICE_PORT);
     let health_duration = health_start.elapsed();
-    let total_duration = total_start.elapsed();
+    let _ = total_start.elapsed(); // timing available for debugging if needed
 
-    // Log for monitoring (always log since we did health check)
-    info!(
-        "[Service] get_service_status: port={}ms, health={}ms (http), total={}ms, running={}",
+    // Log timing info at debug level for performance troubleshooting
+    debug!(
+        "[Service] get_service_status: port={}ms, health={}ms (http), running={}",
         port_duration.as_millis(),
         health_duration.as_millis(),
-        total_duration.as_millis(),
         health_ok
     );
+
+    log_status_change(health_ok, if health_ok { Some(pid_val) } else { None });
 
     Ok(ServiceStatus {
         running: health_ok,

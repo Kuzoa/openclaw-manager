@@ -5,3 +5,6 @@ pub mod logs;
 pub mod process;
 pub mod service;
 pub mod skills;
+
+#[cfg(test)]
+mod service_tests;
