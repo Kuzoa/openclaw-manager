@@ -1,0 +1,123 @@
+{
+  "title": "Model Context Protocol",
+  "description": "Manage MCP servers to extend Agent capabilities",
+  "loading": "Loading...",
+  "installFromGit": "Install from Git",
+  "addManual": "Add Manual",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "save": "Save",
+  "cancel": "Cancel",
+  "test": "Test server",
+  "edit": "Edit",
+  "uninstall": "Uninstall",
+  "uninstallConfirm": "Uninstall MCP \"{{name}}\"? This will remove the cloned files and configuration.",
+  "uninstallSuccess": "Successfully uninstalled {{name}}",
+  "uninstallFailed": "Failed to uninstall MCP: {{error}}",
+  "mcporter": {
+    "installed": "mcporter is installed",
+    "installedDesc": "OpenClaw can use MCP servers via the mcporter skill",
+    "required": "mcporter is required for MCP support",
+    "requiredDesc": "Install mcporter to enable MCP server integration with OpenClaw agents",
+    "install": "Install mcporter",
+    "installing": "Installing...",
+    "installSuccess": "mcporter installed successfully!",
+    "installFailed": "Failed to install mcporter: {{error}}",
+    "uninstall": "Uninstall mcporter",
+    "uninstallConfirm": "Are you sure you want to uninstall mcporter? This will remove the global npm package.",
+    "uninstallSuccess": "mcporter uninstalled successfully"
+  },
+  "install": {
+    "title": "Install MCP Server",
+    "description": "Install from a GitHub repository URL",
+    "fromGitHub": "Install from GitHub",
+    "repoUrl": "Repository URL",
+    "repoPlaceholder": "https://github.com/owner/mcp-server-name",
+    "modePlugin": "As Plugin",
+    "modeSource": "From Source",
+    "modeSourceRecommended": "Recommended",
+    "pluginDesc": "Uses OpenClaw's native plugin system. Only works for packages with openclaw.extensions in package.json.",
+    "sourceDesc": "Clones the repository, runs npm install & build. Works with any MCP server from GitHub.",
+    "installing": "Installing...",
+    "installPlugin": "Install as Plugin",
+    "installSource": "Install from Source",
+    "progress": {
+      "plugin": "Installing via OpenClaw plugins system...",
+      "source": "Cloning repository and building from source..."
+    }
+  },
+  "editor": {
+    "addTitle": "Add New MCP Server",
+    "editTitle": "Edit {{name}}",
+    "serverName": "Server Name",
+    "serverNameHint": "Unique identifier for this server",
+    "status": "Status",
+    "serverType": "Server Type",
+    "localStdio": "Local (stdio)",
+    "remoteUrl": "Remote (URL)",
+    "serverUrl": "Server URL",
+    "serverUrlHint": "HTTP/HTTPS endpoint for the remote MCP server",
+    "command": "Command",
+    "commandPlaceholder": "e.g. node, python, or absolute path to executable",
+    "arguments": "Arguments",
+    "argsPlaceholder": "e.g. index.js --port 3000 (space separated)",
+    "envVars": "Environment Variables",
+    "envPlaceholder": "KEY=VALUE\nAPI_TOKEN=xyz",
+    "errors": {
+      "nameRequired": "Name is required",
+      "commandRequired": "Command is required for local servers",
+      "urlRequired": "URL is required for remote servers",
+      "saveFailed": "Failed to save: {{error}}",
+      "gitUrlRequired": "Please enter a GitHub repository URL",
+      "installFailed": "Installation failed: {{error}}"
+    },
+    "saved": "Saved configuration for {{name}}"
+  },
+  "empty": {
+    "title": "No MCP Servers Configured",
+    "description": "Add a server manually or install from GitHub"
+  },
+  "errors": {
+    "loadFailed": "Failed to load MCP configuration",
+    "testFailed": "Test failed"
+  },
+  "servers": {
+    "title": "Configured Servers",
+    "add": "Add Server",
+    "edit": "Edit Server",
+    "delete": "Delete Server",
+    "empty": "No MCP servers configured",
+    "emptyDescription": "Add an MCP server to extend AI capabilities"
+  },
+  "form": {
+    "name": "Server Name",
+    "namePlaceholder": "e.g. filesystem-server",
+    "nameHint": "Unique identifier for this server",
+    "type": "Server Type",
+    "typeLocal": "Local (stdio)",
+    "typeRemote": "Remote (URL)",
+    "url": "Server URL",
+    "urlPlaceholder": "https://mcp.example.com/mcp",
+    "urlHint": "HTTP/HTTPS endpoint for the remote MCP server",
+    "command": "Command",
+    "commandPlaceholder": "e.g. node, python, or absolute path to executable",
+    "args": "Arguments",
+    "argsPlaceholder": "e.g. index.js --port 3000 (space separated)",
+    "env": "Environment Variables",
+    "envPlaceholder": "KEY=VALUE\nAPI_TOKEN=xyz"
+  },
+  "status": {
+    "label": "Status",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "error": "Error"
+  },
+  "actions": {
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "restart": "Restart"
+  },
+  "confirmDelete": "Are you sure you want to delete this MCP server?"
+}

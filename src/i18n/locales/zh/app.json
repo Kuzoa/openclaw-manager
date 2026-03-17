@@ -1,0 +1,32 @@
+{
+  "updateBanner": {
+    "title": "有新版本可用",
+    "currentVersion": "当前版本",
+    "updateNow": "立即更新",
+    "updating": "更新中...",
+    "success": "更新安装成功！",
+    "restartPending": "正在重启..."
+  },
+  "securityBanner": {
+    "title": "安全警告",
+    "warning": "您的 OpenClaw 版本 ({{version}}) 存在安全风险。",
+    "requirement": "需要版本 >= {{minVersion}}。请立即更新。",
+    "updateNow": "立即更新"
+  },
+  "managerUpdate": {
+    "title": "有新版本可用：Manager v{{version}}",
+    "updating": "更新中...",
+    "success": "更新安装成功！正在重启...",
+    "failed": "更新失败"
+  },
+  "errorBoundary": {
+    "title": "出现问题",
+    "tryAgain": "重试"
+  },
+  "loading": {
+    "component": "加载组件中..."
+  },
+  "notifications": {
+    "close": "关闭"
+  }
+}

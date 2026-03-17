@@ -1,0 +1,63 @@
+{
+  "title": "Dashboard",
+  "description": "System overview and quick actions",
+  "status": {
+    "title": "Service Status",
+    "detecting": "Detecting...",
+    "running": "Running",
+    "stopped": "Stopped",
+    "port": "Port",
+    "pid": "Process ID",
+    "memory": "Memory",
+    "uptime": "Uptime"
+  },
+  "actions": {
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "killAll": "Kill All",
+    "diagnostics": "Diagnostics"
+  },
+  "quickActions": {
+    "title": "Quick Actions"
+  },
+  "systemInfo": {
+    "title": "System Requirements",
+    "detectError": "Unable to detect system environment.",
+    "allReady": "All prerequisites are installed and ready",
+    "progress": "{{installed}}/{{total}} prerequisites installed",
+    "refresh": "Re-check requirements",
+    "ready": "Ready",
+    "installing": "Installing...",
+    "install": "Install",
+    "download": "Download",
+    "installFailed": "Failed to install {{name}}",
+    "requirements": {
+      "nodejs": {
+        "name": "Node.js",
+        "description": "JavaScript runtime (v22+ required)",
+        "versionNote": "Version too old, requires v22+"
+      },
+      "git": {
+        "name": "Git",
+        "description": "Version control for MCP & skill repos"
+      },
+      "openclaw": {
+        "name": "OpenClaw",
+        "description": "AI agent framework"
+      },
+      "gateway": {
+        "name": "Gateway Service",
+        "description": "System service (requires admin)"
+      }
+    }
+  },
+  "setup": {
+    "title": "Setup Required",
+    "description": "Complete the initial setup to get started"
+  },
+  "welcome": {
+    "title": "Welcome to OpenClaw Manager",
+    "description": "Your AI-powered development assistant"
+  }
+}

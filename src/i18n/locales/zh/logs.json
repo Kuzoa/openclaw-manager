@@ -1,0 +1,41 @@
+{
+  "title": "应用日志",
+  "filter": {
+    "allLevels": "所有级别",
+    "allModules": "所有模块"
+  },
+  "stats": {
+    "entries": "{{count}} 条",
+    "entries_plural": "{{count}} 条",
+    "errors": "{{count}} 个错误",
+    "errors_plural": "{{count}} 个错误",
+    "warnings": "{{count}} 个警告",
+    "warnings_plural": "{{count}} 个警告"
+  },
+  "autoScroll": "自动滚动",
+  "actions": {
+    "export": "导出日志",
+    "clear": "清除日志"
+  },
+  "notifications": {
+    "exportSuccess": "日志导出成功",
+    "exportFailed": "导出失败"
+  },
+  "empty": {
+    "title": "暂无日志",
+    "description": "应用运行时日志会显示在这里"
+  },
+  "detection": {
+    "start": "开始环境检查...",
+    "process": "检测过程",
+    "check": "检查",
+    "found": "找到",
+    "notFound": "文件不存在",
+    "error": "执行失败: {{message}}",
+    "unknownError": "未知错误",
+    "done": "检测完成",
+    "completeInstalled": "环境检查完成: {{version}}",
+    "completeNotInstalled": "环境检查完成: OpenClaw 未安装",
+    "installed": "OpenClaw 已安装"
+  }
+}

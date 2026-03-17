@@ -1,0 +1,42 @@
+{
+  "title": "系统诊断",
+  "description": "检查 OpenClaw 安装和配置状态",
+  "runDiagnostics": "运行诊断",
+  "passed": "{{count}} 个通过",
+  "failed": "{{count}} 个失败",
+  "emptyState": "点击「运行诊断」按钮开始检查系统状态",
+  "diagnostics": {
+    "execution": "诊断执行",
+    "checkInstallation": "请检查 OpenClaw 是否正确安装"
+  },
+  "instructions": {
+    "title": "诊断说明",
+    "checksDescription": "系统诊断检查 Node.js、OpenClaw 安装、配置文件和其他状态",
+    "aiTesting": "AI 连接测试请前往",
+    "aiConfig": "AI 配置",
+    "channelTesting": "频道测试请前往",
+    "channels": "消息频道"
+  },
+  "tests": {
+    "title": "可用测试",
+    "environment": "环境检查",
+    "connection": "连接测试",
+    "integration": "集成测试"
+  },
+  "actions": {
+    "runAll": "运行所有测试",
+    "runSelected": "运行选中测试"
+  },
+  "results": {
+    "title": "测试结果",
+    "pass": "通过",
+    "fail": "失败",
+    "pending": "待定",
+    "running": "运行中..."
+  },
+  "summary": {
+    "passed": "{{count}} 个通过",
+    "failed": "{{count}} 个失败",
+    "total": "共 {{count}} 个"
+  }
+}

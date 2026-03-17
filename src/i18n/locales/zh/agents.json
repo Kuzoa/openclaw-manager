@@ -1,0 +1,89 @@
+{
+  "title": "Agent 配置",
+  "description": "管理代理定义和覆盖设置",
+  "routingFlow": {
+    "title": "路由流程",
+    "show": "显示",
+    "hide": "隐藏"
+  },
+  "agents": {
+    "title": "代理",
+    "description": "管理代理定义和覆盖设置",
+    "empty": "未配置代理。创建一个以开始使用。",
+    "quickSetup": "快速设置",
+    "addAgent": "添加代理",
+    "default": "默认",
+    "sandbox": "沙盒",
+    "clone": "克隆代理",
+    "edit": "编辑代理",
+    "delete": "删除代理",
+    "confirmDelete": "删除代理 {{id}}？",
+    "agentDir": "代理目录",
+    "modelOverride": "模型覆盖"
+  },
+  "bindings": {
+    "title": "路由规则",
+    "description": "将传入消息路由到特定代理",
+    "addRule": "添加规则",
+    "empty": "未配置路由规则。消息将使用默认代理。",
+    "catchAll": "全部匹配",
+    "channel": "频道",
+    "account": "账户",
+    "testRouting": "测试路由",
+    "deleteRule": "删除规则",
+    "confirmDelete": "删除此绑定规则？"
+  },
+  "routingTest": {
+    "title": "路由测试结果",
+    "agent": "代理",
+    "model": "模型",
+    "personality": "个性 (SOUL.md)"
+  },
+  "dialog": {
+    "editAgent": "编辑代理",
+    "addAgent": "添加新代理",
+    "agentId": "代理 ID",
+    "agentIdPlaceholder": "例如 my-agent",
+    "agentIdHint": "此代理的唯一标识符",
+    "name": "显示名称",
+    "namePlaceholder": "例如 我的助手",
+    "model": "模型覆盖",
+    "modelPlaceholder": "例如 claude-3-5-sonnet-20241022",
+    "modelHint": "留空使用默认模型",
+    "workspace": "工作区",
+    "workspacePlaceholder": "/path/to/workspace",
+    "agentDir": "代理目录",
+    "agentDirPlaceholder": "agents/my-agent",
+    "default": "设为默认代理",
+    "sandbox": "启用沙盒模式",
+    "cancel": "取消",
+    "save": "保存代理",
+    "saving": "保存中..."
+  },
+  "wizard": {
+    "title": "快速设置向导",
+    "step1": "选择机器人",
+    "step2": "配置代理",
+    "selectBot": "选择机器人账户",
+    "selectBotDesc": "选择要与代理关联的 Telegram 机器人账户",
+    "agentConfig": "配置代理",
+    "agentConfigDesc": "设置代理 ID 和可选设置",
+    "agentId": "代理 ID",
+    "model": "模型",
+    "modelPlaceholder": "留空使用默认",
+    "isDefault": "设为默认代理",
+    "back": "返回",
+    "next": "下一步",
+    "create": "创建代理"
+  },
+  "actions": {
+    "create": "创建代理",
+    "duplicate": "复制",
+    "delete": "删除代理"
+  },
+  "errors": {
+    "saveFailed": "保存代理失败",
+    "deleteFailed": "删除代理失败",
+    "routingTestFailed": "路由测试失败"
+  }
+}

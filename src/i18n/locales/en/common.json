@@ -1,0 +1,44 @@
+{
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "export": "Export",
+    "import": "Import",
+    "clear": "Clear",
+    "uninstall": "Uninstall",
+    "stop": "Stop",
+    "start": "Start",
+    "restart": "Restart"
+  },
+  "status": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "error": "Error",
+    "loading": "Loading...",
+    "success": "Success",
+    "requiresRestart": "Requires restart"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "zh": "中文"
+  },
+  "entries": "{{count}} entry",
+  "entries_plural": "{{count}} entries",
+  "errors": "{{count}} error",
+  "errors_plural": "{{count}} errors",
+  "warnings": "{{count}} warning",
+  "warnings_plural": "{{count}} warnings",
+  "messages": {
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Save failed",
+    "deleteConfirm": "Are you sure you want to delete?",
+    "copySuccess": "Copied to clipboard",
+    "copyFailed": "Failed to copy"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "title": "安装向导",
+  "description": "初始设置和环境配置",
+  "status": {
+    "detecting": "正在检测系统环境..."
+  },
+  "system": {
+    "os": "操作系统"
+  },
+  "dependencies": {
+    "nodejs": {
+      "name": "Node.js",
+      "notInstalled": "未安装",
+      "versionNote": "需要 v22+"
+    },
+    "openclaw": {
+      "name": "OpenClaw",
+      "notInstalled": "未安装",
+      "installNodejsFirst": "请先安装 Node.js"
+    }
+  },
+  "actions": {
+    "install": "安装",
+    "installing": "安装中...",
+    "recheck": "重新检查",
+    "getStarted": "开始使用"
+  },
+  "errors": {
+    "restartRequired": "Node.js 安装完成，请重启应用程序以使环境变量生效",
+    "terminalOpened": "安装终端已打开，请在终端中完成安装后点击「重新检查」",
+    "installFailed": "安装失败：{{error}}"
+  },
+  "help": {
+    "downloadNodejs": "手动下载 Node.js"
+  },
+  "complete": {
+    "title": "环境就绪！",
+    "description": "Node.js 和 OpenClaw 已正确安装"
+  },
+  "embedded": {
+    "title": "环境设置",
+    "description": "检测到缺少依赖，请完成以下安装"
+  },
+  "fullscreen": {
+    "title": "OpenClaw Manager",
+    "subtitle": "环境检测与安装向导",
+    "version": "OpenClaw Manager v0.0.5"
+  },
+  "checking": {
+    "title": "检查环境",
+    "detecting": "正在检测已安装组件..."
+  },
+  "install": {
+    "nodejs": "安装 Node.js",
+    "openclaw": "安装 OpenClaw"
+  },
+  "status": {
+    "installed": "已安装",
+    "notInstalled": "未安装",
+    "requiresRestart": "需要重启"
+  },
+  "components": {
+    "nodejs": "Node.js",
+    "openclaw": "OpenClaw",
+    "manager": "OpenClaw Manager"
+  },
+  "messages": {
+    "restartRequired": "需要重启以完成安装",
+    "setupComplete": "安装完成！"
+  }
+}

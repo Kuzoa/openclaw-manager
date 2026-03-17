@@ -1,0 +1,30 @@
+{
+  "title": "Service Management",
+  "description": "Control and monitor the OpenClaw service",
+  "status": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "starting": "Starting...",
+    "stopping": "Stopping..."
+  },
+  "port": {
+    "label": "Service Port",
+    "description": "The port the service is running on"
+  },
+  "process": {
+    "title": "Process Information",
+    "pid": "Process ID",
+    "startTime": "Start Time"
+  },
+  "actions": {
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "killAll": "Kill All Processes"
+  },
+  "autoRefresh": "Auto refresh",
+  "logFile": "/tmp/openclaw-gateway.log",
+  "linesCount": "{{count}} lines",
+  "noLogs": "No logs available",
+  "actionFailed": "Operation failed"
+}

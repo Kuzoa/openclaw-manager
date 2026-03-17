@@ -1,0 +1,114 @@
+{
+  "title": "设置",
+  "description": "管理应用设置和偏好",
+  "language": {
+    "label": "语言",
+    "description": "选择显示语言"
+  },
+  "compaction": {
+    "title": "压缩与内存",
+    "description": "管理代理内存优化",
+    "enable": "启用压缩",
+    "enableDescription": "当对话历史过长时进行压缩",
+    "threshold": "令牌阈值",
+    "thresholdDescription": "触发压缩前的令牌数量",
+    "contextPruning": "上下文修剪",
+    "contextPruningDescription": "限制上下文中保留的最近消息数量",
+    "maxMessages": "最大消息数",
+    "maxMessagesDescription": "保留的最近消息的最大数量",
+    "localMemorySearch": "本地内存搜索",
+    "localMemorySearchDescription": "启用离线嵌入映射",
+    "noneDisabled": "无（禁用）"
+  },
+  "workspace": {
+    "title": "工作区",
+    "description": "时间和本地化设置",
+    "timezone": "时区",
+    "timeFormat": "时间格式",
+    "default24h": "默认（24小时）",
+    "12hFormat": "12小时（上午/下午）",
+    "24hFormat": "24小时"
+  },
+  "gateway": {
+    "title": "网关设置",
+    "description": "网络和日志配置",
+    "port": "网关端口",
+    "logLevel": "日志级别",
+    "requiresRestart": "需要重启服务"
+  },
+  "subagent": {
+    "title": "子代理默认值",
+    "description": "嵌套子代理生成的全局限制",
+    "maxSpawnDepth": "最大生成深度",
+    "maxSpawnDepthDescription": "嵌套层级",
+    "maxChildrenPerAgent": "每个代理的最大子代理数",
+    "maxChildrenPerAgentDescription": "每个父代理",
+    "maxConcurrent": "最大并发数",
+    "maxConcurrentDescription": "系统范围",
+    "inlineAttachments": "内联文件附件",
+    "inlineAttachmentsDescription": "允许子代理处理文件",
+    "maxTotalSize": "总大小限制（字节）",
+    "maxTotalSizeDescription": "标准会话附件拖放限制"
+  },
+  "configManagement": {
+    "title": "配置管理",
+    "description": "备份和恢复设置",
+    "validateSchema": "验证配置架构",
+    "configValid": "配置符合 CLI 架构要求",
+    "export": "导出",
+    "import": "导入"
+  },
+  "browser": {
+    "title": "浏览器控制",
+    "description": "配置内置浏览器功能",
+    "enable": "启用浏览器工具",
+    "enableDescription": "允许代理浏览网页",
+    "chromeColor": "浏览器主题色",
+    "chromeColorDescription": "浏览器窗口的自定义颜色",
+    "default": "默认"
+  },
+  "tools": {
+    "title": "工具与安全",
+    "description": "管理工具访问配置文件和设置",
+    "securityProfile": "安全配置文件",
+    "securityProfileDescription": "配置所有代理内置工具的基线允许列表",
+    "profileMessaging": "Messaging (Safest)",
+    "profileMinimal": "Minimal",
+    "profileCoding": "Coding",
+    "profileFull": "Full Access",
+    "nativePdfSupport": "原生 PDF 支持",
+    "maxPages": "最大页数",
+    "maxSizeMB": "最大大小（MB）"
+  },
+  "webSearch": {
+    "title": "网页搜索",
+    "description": "配置搜索引擎 API",
+    "braveApiKey": "Brave 搜索 API 密钥",
+    "braveApiKeyDescription": "代理执行网页搜索所需"
+  },
+  "managerUpdate": {
+    "title": "管理器更新",
+    "description": "保持 OpenClaw 管理器为最新版本",
+    "version": "版本",
+    "check": "检查更新",
+    "checking": "检查中...",
+    "checkDescription": "检查 GitHub 上的最新管理器版本",
+    "upToDate": "已是最新版本！",
+    "updateAvailable": "有更新可用：v{{version}}",
+    "downloadInstall": "下载并安装",
+    "downloadProgress": "下载进度",
+    "installSuccess": "更新安装成功！",
+    "restartNow": "立即重启"
+  },
+  "dangerZone": {
+    "title": "危险区域",
+    "uninstallConfirm": "确定要卸载 OpenClaw 吗？这将",
+    "permanentlyDelete": "永久删除",
+    "entireFolder": "整个 ~/.openclaw 文件夹（所有配置、代理和数据）并卸载 OpenClaw CLI。",
+    "cannotBeUndone": "此操作无法撤销。",
+    "cancel": "取消",
+    "uninstall": "卸载"
+  },
+  "save": "保存设置",
+  "saveSuccess": "保存成功！"
+}

@@ -1,0 +1,58 @@
+{
+  "title": "技能管理",
+  "description": "管理您的 OpenClaw 技能",
+  "loading": "加载技能中...",
+  "remove": "移除 {{name}}",
+  "common": {
+    "cancel": "取消"
+  },
+  "install": {
+    "title": "安装技能",
+    "placeholder": "例如：self-improving-agent",
+    "button": "安装",
+    "hint": "使用 npx clawhub install 安装"
+  },
+  "uninstall": {
+    "title": "卸载技能？",
+    "description": "确定要移除 {{name}} 吗？此操作无法撤销。",
+    "confirm": "卸载"
+  },
+  "clawhub": {
+    "installed": "Clawhub 已安装",
+    "installedDesc": "官方 CLI 工具已安装并就绪。",
+    "required": "需要 Clawhub CLI",
+    "requiredDesc": "安装官方 CLI 工具以管理技能",
+    "install": "安装 Clawhub",
+    "installing": "安装中...",
+    "installSuccess": "Clawhub 安装成功",
+    "uninstall": "卸载 Clawhub",
+    "uninstallConfirm": "确定要卸载 Clawhub 吗？这将移除全局 npm 包。",
+    "uninstallSuccess": "Clawhub 卸载成功"
+  },
+  "empty": {
+    "title": "未找到技能",
+    "description": "安装技能以开始使用"
+  },
+  "errors": {
+    "loadFailed": "加载技能失败",
+    "clawhubInstallFailed": "安装 clawhub 失败",
+    "clawhubUninstallFailed": "卸载 clawhub 失败",
+    "uninstallFailed": "卸载技能失败"
+  },
+  "list": {
+    "empty": "未安装技能",
+    "emptyDescription": "安装技能以扩展功能"
+  },
+  "actions": {
+    "install": "安装技能",
+    "uninstall": "卸载",
+    "configure": "配置"
+  },
+  "status": {
+    "installed": "已安装",
+    "available": "可用",
+    "installing": "安装中...",
+    "uninstalling": "卸载中..."
+  },
+  "confirmUninstall": "确定要卸载此技能吗？"
+}

@@ -1,0 +1,174 @@
+{
+  "title": "Message Channels",
+  "description": "Configure channels for AI communication",
+  "list": {
+    "title": "Message Channels"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Not Configured",
+    "running": "Running",
+    "stopped": "Stopped",
+    "detecting": "Detecting..."
+  },
+  "actions": {
+    "save": "Save Configuration",
+    "saving": "Saving...",
+    "test": "Quick Test",
+    "testing": "Testing...",
+    "clear": "Clear Config",
+    "clearing": "Clearing...",
+    "login": "Login",
+    "loggingIn": "Logging in..."
+  },
+  "test": {
+    "success": "{{channel}} test successful",
+    "failed": "Test failed",
+    "cleared": "{{channel}} configuration cleared",
+    "clearFailed": "Clear failed"
+  },
+  "notifications": {
+    "saved": "Channel configuration saved!",
+    "saveFailed": "Save failed: {{error}}",
+    "qrPrompt": "Please scan the QR code in the popup terminal window to complete login\n\nThe interface will update automatically after successful login",
+    "loginFailed": "Failed to start login: {{error}}"
+  },
+  "form": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "botToken": "Bot Token",
+    "userId": "User ID",
+    "dmPolicy": "DM Policy",
+    "groupPolicy": "Group Policy",
+    "streamMode": "Stream Mode",
+    "testChannelId": "Test Channel ID",
+    "appId": "App ID",
+    "appSecret": "App Secret",
+    "testChatId": "Test Chat ID",
+    "connectionMode": "Connection Mode",
+    "domain": "Deployment Region",
+    "requireMention": "Require @Mention",
+    "appKey": "App Key",
+    "enabled": "Enabled",
+    "policy": {
+      "pairing": "Pairing Mode",
+      "open": "Open Mode",
+      "disabled": "Disabled"
+    },
+    "groupPolicy": {
+      "open": "Enabled (Respond to all)",
+      "allowlist": "Allowlist (Explicitly allowed only)",
+      "disabled": "Disabled (Ignore all)"
+    },
+    "streamMode": {
+      "partial": "Partial (Default)",
+      "block": "Block",
+      "off": "Off"
+    },
+    "connectionMode": {
+      "websocket": "WebSocket (Recommended)",
+      "webhook": "Webhook"
+    },
+    "domain": {
+      "feishu": "China (feishu.cn)",
+      "lark": "International (larksuite.com)"
+    },
+    "requireMention": {
+      "true": "Yes",
+      "false": "No"
+    }
+  },
+  "telegram": {
+    "accounts": "Telegram Accounts",
+    "primary": "Primary",
+    "addAccount": "Add Account",
+    "accountId": "Account ID",
+    "botToken": "Bot Token",
+    "dmUsers": "Allowed DM Users (User ID)",
+    "fetchUsers": "Fetch Users",
+    "fetchUsersHint": "Fetch users who have messaged this bot",
+    "discoveredUsers": "Discovered Users (click + to add)",
+    "added": "Added",
+    "noUsers": "No users found. Make sure someone has sent a message to this bot first (e.g. /start).",
+    "placeholderText": "Users will be added automatically via pairing flow.",
+    "savedAs": "Saved per-account as",
+    "inheritedFromPrimary": "Inherited from primary bot if empty."
+  },
+  "groups": {
+    "title": "Group Settings",
+    "groupId": "Group ID",
+    "requireMention": "Require @Mention",
+    "enabled": "Enabled",
+    "groupPolicy": "Group Policy",
+    "systemPrompt": "System Prompt",
+    "addGroup": "Add Group",
+    "noGroups": "No group-specific settings configured",
+    "policy": {
+      "open": "Open",
+      "allowlist": "Allowlist"
+    }
+  },
+  "allowFrom": {
+    "title": "Allow From (DM User IDs)",
+    "description": "Only allow messages from these user IDs in DMs",
+    "add": "Add User ID",
+    "placeholder": "e.g. 123456789"
+  },
+  "groupAllowFrom": {
+    "title": "Group Allow From (Sender IDs)",
+    "description": "Only allow messages from these user IDs in groups",
+    "add": "Add Sender ID",
+    "placeholder": "e.g. 123456789"
+  },
+  "feishu": {
+    "plugin": {
+      "title": "Feishu Plugin",
+      "installed": "Feishu plugin is installed",
+      "notInstalled": "Feishu plugin is required for Feishu channel",
+      "install": "Install Plugin",
+      "installing": "Installing...",
+      "installSuccess": "Plugin installed successfully",
+      "installFailed": "Installation failed: {{error}}",
+      "checking": "Checking..."
+    }
+  },
+  "channels": {
+    "telegram": {
+      "name": "Telegram",
+      "helpText": "1. Search @BotFather and send /newbot to get Token  2. Search @userinfobot to get User ID"
+    },
+    "discord": {
+      "name": "Discord",
+      "helpText": "Get from Discord Developer Portal, enable Developer Mode to copy Channel ID"
+    },
+    "slack": {
+      "name": "Slack",
+      "helpText": "Get from Slack API dashboard, Channel ID can be copied from channel details"
+    },
+    "feishu": {
+      "name": "Feishu",
+      "helpText": "Get credentials from Feishu Open Platform, Chat ID can be found in group settings"
+    },
+    "imessage": {
+      "name": "iMessage",
+      "helpText": "macOS only, requires Messages access permission"
+    },
+    "whatsapp": {
+      "name": "WhatsApp",
+      "helpText": "Requires QR code scan to login, run: openclaw channels login --channel whatsapp"
+    },
+    "wechat": {
+      "name": "WeChat",
+      "helpText": "WeChat Official Account/Enterprise WeChat configuration"
+    },
+    "dingtalk": {
+      "name": "DingTalk",
+      "helpText": "Get from DingTalk Open Platform"
+    }
+  },
+  "empty": {
+    "title": "No Channel Selected",
+    "description": "Select a channel from the list to configure"
+  },
+  "confirmClear": "Are you sure you want to clear the configuration for this channel?"
+}

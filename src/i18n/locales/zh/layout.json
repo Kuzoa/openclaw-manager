@@ -1,0 +1,30 @@
+{
+  "nav": {
+    "overview": "概览",
+    "mcp": "MCP 服务",
+    "skills": "技能",
+    "agents": "Agent",
+    "ai": "AI 配置",
+    "channels": "频道",
+    "logs": "日志",
+    "settings": "设置"
+  },
+  "service": {
+    "running": "服务运行中",
+    "stopped": "服务已停止",
+    "port": "端口"
+  },
+  "header": {
+    "dashboard": { "title": "概览", "description": "服务状态、日志和快捷操作" },
+    "overview": { "title": "概览", "description": "服务状态、日志和快捷操作" },
+    "mcp": { "title": "MCP 服务器", "description": "管理 Model Context Protocol 服务器" },
+    "skills": { "title": "技能管理", "description": "管理 OpenClaw 技能" },
+    "ai": { "title": "AI 模型配置", "description": "配置 AI 提供商和模型" },
+    "channels": { "title": "消息频道", "description": "配置 Telegram、Discord、飞书等" },
+    "agents": { "title": "Agent 路由", "description": "管理 Agent 和绑定规则" },
+    "logs": { "title": "应用日志", "description": "查看 Manager 应用控制台日志" },
+    "settings": { "title": "设置", "description": "身份配置和高级选项" },
+    "refresh": "刷新",
+    "openDashboard": "控制台"
+  }
+}

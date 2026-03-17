@@ -1,0 +1,41 @@
+{
+  "title": "Application Logs",
+  "filter": {
+    "allLevels": "All Levels",
+    "allModules": "All Modules"
+  },
+  "stats": {
+    "entries": "{{count}} entry",
+    "entries_plural": "{{count}} entries",
+    "errors": "{{count}} error",
+    "errors_plural": "{{count}} errors",
+    "warnings": "{{count}} warning",
+    "warnings_plural": "{{count}} warnings"
+  },
+  "autoScroll": "Auto scroll",
+  "actions": {
+    "export": "Export logs",
+    "clear": "Clear logs"
+  },
+  "notifications": {
+    "exportSuccess": "Logs exported successfully",
+    "exportFailed": "Export failed"
+  },
+  "empty": {
+    "title": "No logs available",
+    "description": "Logs will appear here when the application runs"
+  },
+  "detection": {
+    "start": "Starting environment check...",
+    "process": "Detection process",
+    "check": "Check",
+    "found": "Found",
+    "notFound": "File not found",
+    "error": "Execution failed: {{message}}",
+    "unknownError": "Unknown error",
+    "done": "Detection complete",
+    "completeInstalled": "Environment check complete: {{version}}",
+    "completeNotInstalled": "Environment check complete: OpenClaw not installed",
+    "installed": "OpenClaw installed"
+  }
+}

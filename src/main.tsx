@@ -4,6 +4,8 @@ import App from './App';
 import './styles/globals.css';
 // Ensure logger is initialized (will show startup info in console)
 import './lib/logger';
+// Initialize i18n for internationalization
+import './i18n';
 
 console.log(
   '%c🦞 OpenClaw Manager  Starting',

@@ -1,0 +1,30 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "mcp": "MCPs",
+    "skills": "Skills",
+    "agents": "Agents",
+    "ai": "AI Config",
+    "channels": "Channels",
+    "logs": "Logs",
+    "settings": "Settings"
+  },
+  "service": {
+    "running": "Service Running",
+    "stopped": "Service Stopped",
+    "port": "Port"
+  },
+  "header": {
+    "dashboard": { "title": "Dashboard", "description": "Service status, logs and quick actions" },
+    "overview": { "title": "Overview", "description": "Service status, logs and quick actions" },
+    "mcp": { "title": "MCP Servers", "description": "Manage Model Context Protocol servers" },
+    "skills": { "title": "Skills", "description": "Manage OpenClaw skills" },
+    "ai": { "title": "AI Model Configuration", "description": "Configure AI providers and models" },
+    "channels": { "title": "Message Channels", "description": "Configure Telegram, Discord, Lark, etc." },
+    "agents": { "title": "Agent Routing", "description": "Manage agents and binding rules" },
+    "logs": { "title": "Application Logs", "description": "View Manager application console logs" },
+    "settings": { "title": "Settings", "description": "Identity configuration and advanced options" },
+    "refresh": "Refresh",
+    "openDashboard": "Dashboard"
+  }
+}

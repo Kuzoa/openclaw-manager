@@ -1,0 +1,116 @@
+{
+  "title": "模型上下文协议",
+  "description": "管理 MCP 服务器以扩展 Agent 能力",
+  "loading": "加载中...",
+  "installFromGit": "从 Git 安装",
+  "addManual": "手动添加",
+  "enabled": "已启用",
+  "disabled": "已禁用",
+  "save": "保存",
+  "cancel": "取消",
+  "test": "测试服务器",
+  "edit": "编辑",
+  "uninstall": "卸载",
+  "uninstallConfirm": "卸载 MCP \"{{name}}\"？这将删除克隆的文件和配置。",
+  "uninstallSuccess": "成功卸载 {{name}}",
+  "uninstallFailed": "卸载 MCP 失败：{{error}}",
+  "mcporter": {
+    "installed": "mcporter 已安装",
+    "installedDesc": "OpenClaw 可以通过 mcporter 技能使用 MCP 服务器",
+    "required": "MCP 支持需要 mcporter",
+    "requiredDesc": "安装 mcporter 以启用 OpenClaw 代理的 MCP 服务器集成",
+    "install": "安装 mcporter",
+    "installing": "安装中...",
+    "installSuccess": "mcporter 安装成功！",
+    "installFailed": "安装 mcporter 失败：{{error}}",
+    "uninstall": "卸载 mcporter",
+    "uninstallConfirm": "确定要卸载 mcporter 吗？这将移除全局 npm 包。",
+    "uninstallSuccess": "mcporter 卸载成功"
+  },
+  "install": {
+    "title": "安装 MCP 服务器",
+    "description": "从 GitHub 仓库 URL 安装",
+    "fromGitHub": "从 GitHub 安装",
+    "repoUrl": "仓库 URL",
+    "repoPlaceholder": "https://github.com/owner/mcp-server-name",
+    "modePlugin": "作为插件",
+    "modeSource": "从源码",
+    "modeSourceRecommended": "推荐",
+    "pluginDesc": "使用 OpenClaw 原生插件系统。仅适用于 package.json 中包含 openclaw.extensions 的包。",
+    "sourceDesc": "克隆仓库，运行 npm install 和 build。适用于任何来自 GitHub 的 MCP 服务器。",
+    "installing": "安装中...",
+    "installPlugin": "作为插件安装",
+    "installSource": "从源码安装",
+    "progress": {
+      "plugin": "通过 OpenClaw 插件系统安装...",
+      "source": "克隆仓库并从源码构建..."
+    }
+  },
+  "editor": {
+    "addTitle": "添加新 MCP 服务器",
+    "editTitle": "编辑 {{name}}",
+    "serverName": "服务器名称",
+    "serverNameHint": "此服务器的唯一标识符",
+    "status": "状态",
+    "serverType": "服务器类型",
+    "localStdio": "本地",
+    "remoteUrl": "远程",
+    "envPlaceholder": "KEY=VALUE\nAPI_TOKEN=xyz",
+    "errors": {
+      "nameRequired": "名称是必需的",
+      "commandRequired": "本地服务器需要命令",
+      "urlRequired": "远程服务器需要 URL",
+      "saveFailed": "保存失败：{{error}}",
+      "gitUrlRequired": "请输入 GitHub 仓库 URL",
+      "installFailed": "安装失败：{{error}}"
+    },
+    "saved": "已保存 {{name}} 的配置"
+  },
+  "empty": {
+    "title": "未配置 MCP 服务器",
+    "description": "手动添加服务器或从 GitHub 安装"
+  },
+  "errors": {
+    "loadFailed": "加载 MCP 配置失败",
+    "testFailed": "测试失败"
+  },
+  "servers": {
+    "title": "已配置服务器",
+    "add": "添加服务器",
+    "edit": "编辑服务器",
+    "delete": "删除服务器",
+    "empty": "未配置 MCP 服务器",
+    "emptyDescription": "添加 MCP 服务器以扩展 AI 能力"
+  },
+  "form": {
+    "name": "服务器名称",
+    "namePlaceholder": "例如 filesystem-server",
+    "nameHint": "此服务器的唯一标识符",
+    "type": "服务器类型",
+    "typeLocal": "本地",
+    "typeRemote": "远程",
+    "url": "服务器 URL",
+    "urlPlaceholder": "https://mcp.example.com/mcp",
+    "urlHint": "远程 MCP 服务器的 HTTP/HTTPS 端点",
+    "command": "命令",
+    "commandPlaceholder": "例如 node, python, 或可执行文件的绝对路径",
+    "args": "参数",
+    "argsPlaceholder": "例如 index.js --port 3000 (空格分隔)",
+    "env": "环境变量",
+    "envPlaceholder": "KEY=VALUE\nAPI_TOKEN=xyz"
+  },
+  "status": {
+    "label": "状态",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "error": "错误"
+  },
+  "actions": {
+    "connect": "连接",
+    "disconnect": "断开",
+    "restart": "重启"
+  },
+  "confirmDelete": "确定要删除此 MCP 服务器吗？"
+}

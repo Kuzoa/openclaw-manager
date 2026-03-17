@@ -1,0 +1,71 @@
+{
+  "title": "Setup",
+  "description": "Initial setup and environment configuration",
+  "status": {
+    "detecting": "Detecting system environment..."
+  },
+  "system": {
+    "os": "Operating System"
+  },
+  "dependencies": {
+    "nodejs": {
+      "name": "Node.js",
+      "notInstalled": "Not installed",
+      "versionNote": "requires v22+"
+    },
+    "openclaw": {
+      "name": "OpenClaw",
+      "notInstalled": "Not installed",
+      "installNodejsFirst": "Please install Node.js first"
+    }
+  },
+  "actions": {
+    "install": "Install",
+    "installing": "Installing...",
+    "recheck": "Re-check",
+    "getStarted": "Get Started"
+  },
+  "errors": {
+    "restartRequired": "Node.js installation complete, please restart the application for environment variables to take effect",
+    "terminalOpened": "Installation terminal opened, please complete the installation in the terminal then click \"Re-check\"",
+    "installFailed": "Installation failed: {{error}}"
+  },
+  "help": {
+    "downloadNodejs": "Manually download Node.js"
+  },
+  "complete": {
+    "title": "Environment Ready!",
+    "description": "Node.js and OpenClaw are properly installed"
+  },
+  "embedded": {
+    "title": "Environment Setup",
+    "description": "Missing dependencies detected, please complete the following installations"
+  },
+  "fullscreen": {
+    "title": "OpenClaw Manager",
+    "subtitle": "Environment Detection & Setup Wizard",
+    "version": "OpenClaw Manager v0.0.5"
+  },
+  "checking": {
+    "title": "Checking Environment",
+    "detecting": "Detecting installed components..."
+  },
+  "install": {
+    "nodejs": "Install Node.js",
+    "openclaw": "Install OpenClaw"
+  },
+  "status": {
+    "installed": "Installed",
+    "notInstalled": "Not Installed",
+    "requiresRestart": "Requires Restart"
+  },
+  "components": {
+    "nodejs": "Node.js",
+    "openclaw": "OpenClaw",
+    "manager": "OpenClaw Manager"
+  },
+  "messages": {
+    "restartRequired": "A restart is required to complete installation",
+    "setupComplete": "Setup completed successfully!"
+  }
+}

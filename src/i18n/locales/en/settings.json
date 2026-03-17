@@ -1,0 +1,114 @@
+{
+  "title": "Settings",
+  "description": "Manage application settings and preferences",
+  "language": {
+    "label": "Language",
+    "description": "Select display language"
+  },
+  "compaction": {
+    "title": "Compaction & Memory",
+    "description": "Manage agent memory optimization",
+    "enable": "Enable Compaction",
+    "enableDescription": "Compress conversation history when it gets too long",
+    "threshold": "Token Threshold",
+    "thresholdDescription": "Number of tokens before compaction triggers",
+    "contextPruning": "Context Pruning",
+    "contextPruningDescription": "Limit the number of recent messages kept in context",
+    "maxMessages": "Max Messages",
+    "maxMessagesDescription": "Maximum number of recent messages to keep",
+    "localMemorySearch": "Local Memory Search",
+    "localMemorySearchDescription": "Enable offline embeddings mapping",
+    "noneDisabled": "None (Disabled)"
+  },
+  "workspace": {
+    "title": "Workspace",
+    "description": "Time and localization settings",
+    "timezone": "Timezone",
+    "timeFormat": "Time Format",
+    "default24h": "Default (24h)",
+    "12hFormat": "12h (AM/PM)",
+    "24hFormat": "24h"
+  },
+  "gateway": {
+    "title": "Gateway Settings",
+    "description": "Network and logging configuration",
+    "port": "Gateway Port",
+    "logLevel": "Log Level",
+    "requiresRestart": "Requires service restart"
+  },
+  "subagent": {
+    "title": "Subagent Defaults",
+    "description": "Global limits for nested subagent spawning",
+    "maxSpawnDepth": "Max Spawn Depth",
+    "maxSpawnDepthDescription": "Nesting levels",
+    "maxChildrenPerAgent": "Max Children / Agent",
+    "maxChildrenPerAgentDescription": "Per parent",
+    "maxConcurrent": "Max Concurrent",
+    "maxConcurrentDescription": "System-wide",
+    "inlineAttachments": "Inline File Attachments",
+    "inlineAttachmentsDescription": "Allow subagents to process files",
+    "maxTotalSize": "Max Total Size (Bytes)",
+    "maxTotalSizeDescription": "Limit across standard session attachment drops"
+  },
+  "configManagement": {
+    "title": "Configuration Management",
+    "description": "Backup and restore settings",
+    "validateSchema": "Validate Config Schema",
+    "configValid": "Configuration is valid according to the CLI schema",
+    "export": "Export",
+    "import": "Import"
+  },
+  "browser": {
+    "title": "Browser Control",
+    "description": "Configure built-in browser capabilities",
+    "enable": "Enable Browser Tool",
+    "enableDescription": "Allow agents to browse the web",
+    "chromeColor": "Browser Chrome Color",
+    "chromeColorDescription": "Custom color for the browser window",
+    "default": "Default"
+  },
+  "tools": {
+    "title": "Tools & Security",
+    "description": "Manage tool access profiles and settings",
+    "securityProfile": "Security Profile",
+    "securityProfileDescription": "Configures baseline allowlist for built-in tools across all agents",
+    "profileMessaging": "Messaging (Safest)",
+    "profileMinimal": "Minimal",
+    "profileCoding": "Coding",
+    "profileFull": "Full Access",
+    "nativePdfSupport": "Native PDF Support",
+    "maxPages": "Max Pages",
+    "maxSizeMB": "Max Size (MB)"
+  },
+  "webSearch": {
+    "title": "Web Search",
+    "description": "Configure search engine APIs",
+    "braveApiKey": "Brave Search API Key",
+    "braveApiKeyDescription": "Required for agents to perform web searches"
+  },
+  "managerUpdate": {
+    "title": "Manager Update",
+    "description": "Keep OpenClaw Manager up to date",
+    "version": "Version",
+    "check": "Check for Updates",
+    "checking": "Checking...",
+    "checkDescription": "Check GitHub for the latest Manager version",
+    "upToDate": "You're on the latest version!",
+    "updateAvailable": "Update available: v{{version}}",
+    "downloadInstall": "Download & Install",
+    "downloadProgress": "Download Progress",
+    "installSuccess": "Update installed successfully!",
+    "restartNow": "Restart Now"
+  },
+  "dangerZone": {
+    "title": "Danger Zone",
+    "uninstallConfirm": "Are you sure? This will",
+    "permanentlyDelete": "permanently delete",
+    "entireFolder": "the entire ~/.openclaw folder (all configs, agents, and data) and uninstall the OpenClaw CLI.",
+    "cannotBeUndone": "This action cannot be undone.",
+    "cancel": "Cancel",
+    "uninstall": "Uninstall"
+  },
+  "save": "Save Settings",
+  "saveSuccess": "Saved successfully!"
+}

@@ -1,0 +1,113 @@
+{
+  "title": "AI 配置",
+  "description": "管理 OpenClaw 使用的 AI 提供商和模型",
+  "providers": {
+    "title": "AI 提供商",
+    "configuredTitle": "已配置的提供商",
+    "empty": "尚未配置 AI 提供商",
+    "emptyHint": "添加您的第一个 AI 提供商以开始使用",
+    "add": "添加提供商",
+    "addFirst": "添加第一个提供商",
+    "edit": "编辑提供商",
+    "delete": "删除提供商",
+    "primary": "主要",
+    "models": "{{count}} 个模型"
+  },
+  "overview": {
+    "title": "配置概览",
+    "primaryModel": "主要模型",
+    "configuredProviders": "已配置提供商",
+    "availableModels": "可用模型",
+    "notSet": "未设置"
+  },
+  "dialog": {
+    "addTitle": "添加 AI 提供商",
+    "configureTitle": "配置 {{name}}",
+    "editTitle": "编辑提供商: {{name}}",
+    "officialProviders": "官方提供商",
+    "customProvider": "自定义提供商 (OpenAI/Anthropic API 兼容)",
+    "providerName": "提供商名称",
+    "providerNameHint": "用于配置标识，例如 anthropic-custom",
+    "providerNameLocked": "提供商名称无法修改。如需更改，请删除后重新创建。",
+    "apiUrl": "API URL",
+    "apiKey": "API 密钥",
+    "apiKeyOptional": "(可选)",
+    "apiKeyCurrent": "当前:",
+    "apiKeyConfigured": "已配置",
+    "apiKeyHint": "如无需更改 API 密钥，请留空",
+    "apiType": "API 类型",
+    "selectModels": "选择模型",
+    "modelsSelected": "(已选 {{count}} 个)",
+    "customModel": "输入自定义模型 ID",
+    "cancel": "取消",
+    "save": "保存",
+    "saving": "保存中..."
+  },
+  "form": {
+    "name": "名称",
+    "baseUrl": "基础 URL",
+    "apiKey": "API 密钥",
+    "placeholder": {
+      "providerName": "例如 anthropic-custom, my-openai",
+      "baseUrl": "https://api.example.com/v1",
+      "apiKey": "sk-...",
+      "apiKeyEdit": "留空保留现有 API 密钥，或输入新的密钥"
+    }
+  },
+  "apiTypes": {
+    "openai": "OpenAI 兼容",
+    "anthropic": "Anthropic 兼容"
+  },
+  "ollama": {
+    "title": "Ollama 设置",
+    "installed": "已安装",
+    "notInstalled": "未安装",
+    "notInstalledDesc": "未在您的系统上检测到 Ollama。您需要安装它才能在本地运行模型。",
+    "installOllama": "安装 Ollama",
+    "detectedModels": "检测到的本地模型:",
+    "pullModel": "拉取模型",
+    "pullingModel": "正在下载模型...这可能需要几分钟，具体取决于您的网络连接和模型大小。",
+    "modelName": "模型名称"
+  },
+  "test": {
+    "title": "测试 AI 连接",
+    "runTest": "测试连接",
+    "testing": "测试中...",
+    "success": "连接成功",
+    "failed": "连接失败",
+    "response": "响应",
+    "latency": "延迟"
+  },
+  "warnings": {
+    "customUrlWithOfficialName": "您正在使用官方提供商名称但已修改 API URL。建议使用不同的名称以避免配置冲突。",
+    "useSuggestedName": "使用建议名称: {{name}}"
+  },
+  "docs": {
+    "viewOfficial": "查看官方文档"
+  },
+  "actions": {
+    "add": "添加提供商",
+    "edit": "编辑",
+    "delete": "删除",
+    "test": "测试",
+    "setPrimary": "设为主要"
+  },
+  "messages": {
+    "saveSuccess": "提供商 {{name}} 保存成功",
+    "saveFailed": "保存失败: {{error}}",
+    "deleteSuccess": "提供商已删除",
+    "deleteFailed": "删除提供商失败",
+    "testSuccess": "{{provider}} / {{model}} 测试成功",
+    "testFailed": "测试失败: {{error}}"
+  },
+  "validation": {
+    "required": "请填写完整的提供商信息并至少选择一个模型"
+  },
+  "notes": {
+    "title": "配置说明",
+    "savedIn": "提供商配置保存在",
+    "supportsOfficial": "支持官方提供商（Anthropic、OpenAI、Kimi 等）及自定义 OpenAI/Anthropic 兼容 API",
+    "primaryModel": "主要模型用于 Agent 的默认推理，可随时切换",
+    "restart": "配置更改后需重启服务才能生效"
+  }
+}

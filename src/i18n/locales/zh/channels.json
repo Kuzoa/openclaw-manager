@@ -1,0 +1,174 @@
+{
+  "title": "消息频道",
+  "description": "配置 AI 通信频道",
+  "list": {
+    "title": "消息频道"
+  },
+  "status": {
+    "active": "已配置",
+    "inactive": "未配置",
+    "running": "运行中",
+    "stopped": "已停止",
+    "detecting": "检测中..."
+  },
+  "actions": {
+    "save": "保存配置",
+    "saving": "保存中...",
+    "test": "快速测试",
+    "testing": "测试中...",
+    "clear": "清除配置",
+    "clearing": "清除中...",
+    "login": "登录",
+    "loggingIn": "登录中..."
+  },
+  "test": {
+    "success": "{{channel}} 测试成功",
+    "failed": "测试失败",
+    "cleared": "{{channel}} 配置已清除",
+    "clearFailed": "清除失败"
+  },
+  "notifications": {
+    "saved": "频道配置已保存！",
+    "saveFailed": "保存失败：{{error}}",
+    "qrPrompt": "请在弹出的终端窗口中扫描二维码完成登录\n\n登录成功后界面会自动更新",
+    "loginFailed": "启动登录失败：{{error}}"
+  },
+  "form": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "botToken": "机器人令牌",
+    "userId": "用户 ID",
+    "dmPolicy": "私信策略",
+    "groupPolicy": "群组策略",
+    "streamMode": "流式模式",
+    "testChannelId": "测试频道 ID",
+    "appId": "应用 ID",
+    "appSecret": "应用密钥",
+    "testChatId": "测试聊天 ID",
+    "connectionMode": "连接模式",
+    "domain": "部署区域",
+    "requireMention": "需要 @提及",
+    "appKey": "应用密钥",
+    "enabled": "已启用",
+    "policy": {
+      "pairing": "配对模式",
+      "open": "开放模式",
+      "disabled": "已禁用"
+    },
+    "groupPolicy": {
+      "open": "启用 (响应所有)",
+      "allowlist": "白名单 (仅限明确允许)",
+      "disabled": "禁用 (忽略所有)"
+    },
+    "streamMode": {
+      "partial": "部分 (默认)",
+      "block": "块",
+      "off": "关闭"
+    },
+    "connectionMode": {
+      "websocket": "WebSocket (推荐)",
+      "webhook": "Webhook"
+    },
+    "domain": {
+      "feishu": "中国",
+      "lark": "国际"
+    },
+    "requireMention": {
+      "true": "是",
+      "false": "否"
+    }
+  },
+  "telegram": {
+    "accounts": "Telegram 账户",
+    "primary": "主账户",
+    "addAccount": "添加账户",
+    "accountId": "账户 ID",
+    "botToken": "机器人令牌",
+    "dmUsers": "允许的私信用户 (用户 ID)",
+    "fetchUsers": "获取用户",
+    "fetchUsersHint": "获取已向此机器人发送消息的用户",
+    "discoveredUsers": "已发现用户 (点击 + 添加)",
+    "added": "已添加",
+    "noUsers": "未找到用户。请确保有人先向此机器人发送消息（例如 /start）。",
+    "placeholderText": "用户将通过配对流程自动添加。",
+    "savedAs": "按账户保存为",
+    "inheritedFromPrimary": "如果为空则从主机器人继承。"
+  },
+  "groups": {
+    "title": "群组设置",
+    "groupId": "群组 ID",
+    "requireMention": "需要 @提及",
+    "enabled": "已启用",
+    "groupPolicy": "群组策略",
+    "systemPrompt": "系统提示",
+    "addGroup": "添加群组",
+    "noGroups": "未配置群组特定设置",
+    "policy": {
+      "open": "开放",
+      "allowlist": "白名单"
+    }
+  },
+  "allowFrom": {
+    "title": "允许来源 (私信用户 ID)",
+    "description": "只允许这些用户 ID 在私信中发送消息",
+    "add": "添加用户 ID",
+    "placeholder": "例如 123456789"
+  },
+  "groupAllowFrom": {
+    "title": "群组允许来源 (发送者 ID)",
+    "description": "只允许这些用户 ID 在群组中发送消息",
+    "add": "添加发送者 ID",
+    "placeholder": "例如 123456789"
+  },
+  "feishu": {
+    "plugin": {
+      "title": "飞书插件",
+      "installed": "飞书插件已安装",
+      "notInstalled": "飞书频道需要飞书插件",
+      "install": "安装插件",
+      "installing": "安装中...",
+      "installSuccess": "插件安装成功",
+      "installFailed": "安装失败：{{error}}",
+      "checking": "检查中..."
+    }
+  },
+  "channels": {
+    "telegram": {
+      "name": "Telegram",
+      "helpText": "1. 搜索 @BotFather 并发送 /newbot 获取令牌  2. 搜索 @userinfobot 获取用户 ID"
+    },
+    "discord": {
+      "name": "Discord",
+      "helpText": "从 Discord 开发者门户获取，启用开发者模式以复制频道 ID"
+    },
+    "slack": {
+      "name": "Slack",
+      "helpText": "从 Slack API 控制台获取，频道 ID 可从频道详情中复制"
+    },
+    "feishu": {
+      "name": "飞书",
+      "helpText": "从飞书开放平台获取凭据，聊天 ID 可在群设置中找到"
+    },
+    "imessage": {
+      "name": "iMessage",
+      "helpText": "仅限 macOS，需要信息访问权限"
+    },
+    "whatsapp": {
+      "name": "WhatsApp",
+      "helpText": "需要扫描二维码登录，运行：openclaw channels login --channel whatsapp"
+    },
+    "wechat": {
+      "name": "微信",
+      "helpText": "微信公众号/企业微信配置"
+    },
+    "dingtalk": {
+      "name": "钉钉",
+      "helpText": "从钉钉开放平台获取"
+    }
+  },
+  "empty": {
+    "title": "未选择频道",
+    "description": "从列表中选择一个频道进行配置"
+  },
+  "confirmClear": "确定要清除此频道的配置吗？"
+}

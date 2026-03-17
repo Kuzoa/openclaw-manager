@@ -1,0 +1,30 @@
+{
+  "title": "服务管理",
+  "description": "控制和监控 OpenClaw 服务",
+  "status": {
+    "running": "运行中",
+    "stopped": "已停止",
+    "starting": "启动中...",
+    "stopping": "停止中..."
+  },
+  "port": {
+    "label": "服务端口",
+    "description": "服务运行的端口"
+  },
+  "process": {
+    "title": "进程信息",
+    "pid": "进程 ID",
+    "startTime": "启动时间"
+  },
+  "actions": {
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "killAll": "终止所有进程"
+  },
+  "autoRefresh": "自动刷新",
+  "logFile": "/tmp/openclaw-gateway.log",
+  "linesCount": "{{count}} 行",
+  "noLogs": "暂无日志",
+  "actionFailed": "操作失败"
+}

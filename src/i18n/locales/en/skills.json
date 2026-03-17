@@ -1,0 +1,58 @@
+{
+  "title": "Skills",
+  "description": "Manage your OpenClaw skills",
+  "loading": "Loading skills...",
+  "remove": "Remove {{name}}",
+  "common": {
+    "cancel": "Cancel"
+  },
+  "install": {
+    "title": "Install Skill",
+    "placeholder": "e.g. self-improving-agent",
+    "button": "Install",
+    "hint": "Installs using npx clawhub install"
+  },
+  "uninstall": {
+    "title": "Uninstall Skill?",
+    "description": "Are you sure you want to verify removing {{name}}? This action cannot be undone.",
+    "confirm": "Uninstall"
+  },
+  "clawhub": {
+    "installed": "Clawhub Installed",
+    "installedDesc": "The official CLI tool is installed and ready.",
+    "required": "Clawhub CLI Required",
+    "requiredDesc": "Install the official CLI tool to manage skills",
+    "install": "Install Clawhub",
+    "installing": "Installing...",
+    "installSuccess": "Clawhub installed successfully",
+    "uninstall": "Uninstall Clawhub",
+    "uninstallConfirm": "Are you sure you want to uninstall Clawhub? This will remove the global npm package.",
+    "uninstallSuccess": "Clawhub uninstalled successfully"
+  },
+  "empty": {
+    "title": "No Skills Found",
+    "description": "Install a skill to get started"
+  },
+  "errors": {
+    "loadFailed": "Failed to load skills",
+    "clawhubInstallFailed": "Failed to install clawhub",
+    "clawhubUninstallFailed": "Failed to uninstall clawhub",
+    "uninstallFailed": "Failed to uninstall skill"
+  },
+  "list": {
+    "empty": "No skills installed",
+    "emptyDescription": "Install skills to extend functionality"
+  },
+  "actions": {
+    "install": "Install Skill",
+    "uninstall": "Uninstall",
+    "configure": "Configure"
+  },
+  "status": {
+    "installed": "Installed",
+    "available": "Available",
+    "installing": "Installing...",
+    "uninstalling": "Uninstalling..."
+  },
+  "confirmUninstall": "Are you sure you want to uninstall this skill?"
+}

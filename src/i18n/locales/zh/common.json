@@ -1,0 +1,44 @@
+{
+  "actions": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "confirm": "确认",
+    "reset": "重置",
+    "export": "导出",
+    "import": "导入",
+    "clear": "清除",
+    "uninstall": "卸载",
+    "stop": "停止",
+    "start": "启动",
+    "restart": "重启"
+  },
+  "status": {
+    "running": "运行中",
+    "stopped": "已停止",
+    "error": "错误",
+    "loading": "加载中...",
+    "success": "成功",
+    "requiresRestart": "需要重启"
+  },
+  "language": {
+    "label": "语言",
+    "en": "English",
+    "zh": "中文"
+  },
+  "entries": "{{count}} 条",
+  "entries_plural": "{{count}} 条",
+  "errors": "{{count}} 个错误",
+  "errors_plural": "{{count}} 个错误",
+  "warnings": "{{count}} 个警告",
+  "warnings_plural": "{{count}} 个警告",
+  "messages": {
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteConfirm": "确定要删除吗？",
+    "copySuccess": "已复制到剪贴板",
+    "copyFailed": "复制失败"
+  }
+}

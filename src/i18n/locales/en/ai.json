@@ -1,0 +1,113 @@
+{
+  "title": "AI Configuration",
+  "description": "Manage AI Providers and models used by OpenClaw",
+  "providers": {
+    "title": "AI Providers",
+    "configuredTitle": "Configured Providers",
+    "empty": "No AI Providers configured yet",
+    "emptyHint": "Add your first AI provider to get started",
+    "add": "Add Provider",
+    "addFirst": "Add First Provider",
+    "edit": "Edit Provider",
+    "delete": "Delete Provider",
+    "primary": "Primary",
+    "models": "{{count}} models"
+  },
+  "overview": {
+    "title": "Configuration Overview",
+    "primaryModel": "Primary Model",
+    "configuredProviders": "Configured Providers",
+    "availableModels": "Available Models",
+    "notSet": "Not Set"
+  },
+  "dialog": {
+    "addTitle": "Add AI Provider",
+    "configureTitle": "Configure {{name}}",
+    "editTitle": "Edit Provider: {{name}}",
+    "officialProviders": "Official Providers",
+    "customProvider": "Custom Provider (OpenAI/Anthropic API Compatible)",
+    "providerName": "Provider Name",
+    "providerNameHint": "For configuration identifier, e.g., anthropic-custom",
+    "providerNameLocked": "Provider name cannot be modified. Please delete and recreate if you need to change it.",
+    "apiUrl": "API URL",
+    "apiKey": "API Key",
+    "apiKeyOptional": "(Optional)",
+    "apiKeyCurrent": "Current:",
+    "apiKeyConfigured": "Configured",
+    "apiKeyHint": "Leave empty if you don't need to change the API Key",
+    "apiType": "API Type",
+    "selectModels": "Select Models",
+    "modelsSelected": "({{count}} selected)",
+    "customModel": "Enter custom model ID",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "form": {
+    "name": "Name",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "placeholder": {
+      "providerName": "e.g., anthropic-custom, my-openai",
+      "baseUrl": "https://api.example.com/v1",
+      "apiKey": "sk-...",
+      "apiKeyEdit": "Leave empty to keep existing API Key, or enter a new one"
+    }
+  },
+  "apiTypes": {
+    "openai": "OpenAI Compatible (openai-completions)",
+    "anthropic": "Anthropic Compatible (anthropic-messages)"
+  },
+  "ollama": {
+    "title": "Ollama Setup",
+    "installed": "Installed",
+    "notInstalled": "Not installed",
+    "notInstalledDesc": "Ollama was not detected on your system. You'll need to install it to run models locally.",
+    "installOllama": "Install Ollama",
+    "detectedModels": "Detected Local Models:",
+    "pullModel": "Pull Model",
+    "pullingModel": "Downloading model... this may take a few minutes depending on your internet connection and model size.",
+    "modelName": "Model name"
+  },
+  "test": {
+    "title": "Test AI Connection",
+    "runTest": "Test Connection",
+    "testing": "Testing...",
+    "success": "Connection successful",
+    "failed": "Connection failed",
+    "response": "Response",
+    "latency": "Latency"
+  },
+  "warnings": {
+    "customUrlWithOfficialName": "You are using an official Provider name but have modified the API URL. It is recommended to use a different name to avoid configuration conflicts.",
+    "useSuggestedName": "Use suggested name: {{name}}"
+  },
+  "docs": {
+    "viewOfficial": "View Official Documentation"
+  },
+  "actions": {
+    "add": "Add Provider",
+    "edit": "Edit",
+    "delete": "Delete",
+    "test": "Test",
+    "setPrimary": "Set as Primary"
+  },
+  "messages": {
+    "saveSuccess": "Provider {{name}} saved successfully",
+    "saveFailed": "Failed to save: {{error}}",
+    "deleteSuccess": "Provider deleted",
+    "deleteFailed": "Failed to delete provider",
+    "testSuccess": "{{provider}} / {{model}} test successful",
+    "testFailed": "Test failed: {{error}}"
+  },
+  "validation": {
+    "required": "Please fill in complete Provider information and select at least one model"
+  },
+  "notes": {
+    "title": "Configuration Notes",
+    "savedIn": "Provider configuration is saved in",
+    "supportsOfficial": "Supports official Providers (Anthropic, OpenAI, Kimi, etc.) and custom OpenAI/Anthropic compatible APIs",
+    "primaryModel": "The primary model is used for Agent's default inference and can be switched at any time",
+    "restart": "Restart the service for configuration changes to take effect"
+  }
+}

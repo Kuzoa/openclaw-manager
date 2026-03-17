@@ -1,0 +1,42 @@
+{
+  "title": "System Diagnostics",
+  "description": "Check OpenClaw installation and configuration status",
+  "runDiagnostics": "Run Diagnostics",
+  "passed": "{{count}} passed",
+  "failed": "{{count}} failed",
+  "emptyState": "Click \"Run Diagnostics\" button to start checking system status",
+  "diagnostics": {
+    "execution": "Diagnostics Execution",
+    "checkInstallation": "Please check if OpenClaw is properly installed"
+  },
+  "instructions": {
+    "title": "Diagnostic Instructions",
+    "checksDescription": "System diagnostics checks Node.js, OpenClaw installation, config files and other status",
+    "aiTesting": "For AI connection testing, go to",
+    "aiConfig": "AI Configuration",
+    "channelTesting": "For channel testing, go to",
+    "channels": "Message Channels"
+  },
+  "tests": {
+    "title": "Available Tests",
+    "environment": "Environment Check",
+    "connection": "Connection Test",
+    "integration": "Integration Test"
+  },
+  "actions": {
+    "runAll": "Run All Tests",
+    "runSelected": "Run Selected"
+  },
+  "results": {
+    "title": "Test Results",
+    "pass": "Pass",
+    "fail": "Fail",
+    "pending": "Pending",
+    "running": "Running..."
+  },
+  "summary": {
+    "passed": "{{count}} passed",
+    "failed": "{{count}} failed",
+    "total": "{{count}} total"
+  }
+}

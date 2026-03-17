@@ -1,0 +1,89 @@
+{
+  "title": "Agents",
+  "description": "Manage agent definitions and overrides",
+  "routingFlow": {
+    "title": "Routing Flow",
+    "show": "Show",
+    "hide": "Hide"
+  },
+  "agents": {
+    "title": "Agents",
+    "description": "Manage agent definitions and overrides",
+    "empty": "No agents configured. Create one to get started.",
+    "quickSetup": "Quick Setup",
+    "addAgent": "Add Agent",
+    "default": "Default",
+    "sandbox": "Sandbox",
+    "clone": "Clone Agent",
+    "edit": "Edit Agent",
+    "delete": "Delete Agent",
+    "confirmDelete": "Delete agent {{id}}?",
+    "agentDir": "Agent Directory",
+    "modelOverride": "Model Override"
+  },
+  "bindings": {
+    "title": "Routing Rules",
+    "description": "Route incoming messages to specific agents",
+    "addRule": "Add Rule",
+    "empty": "No routing rules configured. Messages will use the default agent.",
+    "catchAll": "Catch-all",
+    "channel": "Channel",
+    "account": "Account",
+    "testRouting": "Test Routing",
+    "deleteRule": "Delete Rule",
+    "confirmDelete": "Delete this binding rule?"
+  },
+  "routingTest": {
+    "title": "Routing Test Result",
+    "agent": "Agent",
+    "model": "Model",
+    "personality": "Personality (SOUL.md)"
+  },
+  "dialog": {
+    "editAgent": "Edit Agent",
+    "addAgent": "Add New Agent",
+    "agentId": "Agent ID",
+    "agentIdPlaceholder": "e.g. my-agent",
+    "agentIdHint": "Unique identifier for this agent",
+    "name": "Display Name",
+    "namePlaceholder": "e.g. My Assistant",
+    "model": "Model Override",
+    "modelPlaceholder": "e.g. claude-3-5-sonnet-20241022",
+    "modelHint": "Leave empty to use default model",
+    "workspace": "Workspace",
+    "workspacePlaceholder": "/path/to/workspace",
+    "agentDir": "Agent Directory",
+    "agentDirPlaceholder": "agents/my-agent",
+    "default": "Set as Default Agent",
+    "sandbox": "Enable Sandbox Mode",
+    "cancel": "Cancel",
+    "save": "Save Agent",
+    "saving": "Saving..."
+  },
+  "wizard": {
+    "title": "Quick Setup Wizard",
+    "step1": "Select Bot",
+    "step2": "Configure Agent",
+    "selectBot": "Select Bot Account",
+    "selectBotDesc": "Choose a Telegram bot account to associate with this agent",
+    "agentConfig": "Configure Agent",
+    "agentConfigDesc": "Set up the agent ID and optional settings",
+    "agentId": "Agent ID",
+    "model": "Model",
+    "modelPlaceholder": "Leave empty for default",
+    "isDefault": "Set as Default Agent",
+    "back": "Back",
+    "next": "Next",
+    "create": "Create Agent"
+  },
+  "actions": {
+    "create": "Create Agent",
+    "duplicate": "Duplicate",
+    "delete": "Delete Agent"
+  },
+  "errors": {
+    "saveFailed": "Failed to save agent",
+    "deleteFailed": "Failed to delete agent",
+    "routingTestFailed": "Routing test failed"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "updateBanner": {
+    "title": "New version available",
+    "currentVersion": "Current version",
+    "updateNow": "Update Now",
+    "updating": "Updating...",
+    "success": "Update installed successfully!",
+    "restartPending": "Restarting..."
+  },
+  "securityBanner": {
+    "title": "Security Warning",
+    "warning": "Your OpenClaw version ({{version}}) is insecure.",
+    "requirement": "A version >= {{minVersion}} is required. Please update immediately.",
+    "updateNow": "Update Now"
+  },
+  "managerUpdate": {
+    "title": "New version available: Manager v{{version}}",
+    "updating": "Updating...",
+    "success": "Update installed successfully! Restarting...",
+    "failed": "Update failed"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "tryAgain": "Try again"
+  },
+  "loading": {
+    "component": "Loading component..."
+  },
+  "notifications": {
+    "close": "Close"
+  }
+}
