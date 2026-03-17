@@ -1,5 +1,6 @@
 import { Activity, Cpu, HardDrive, Clock } from 'lucide-react';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface ServiceStatus {
   running: boolean;
@@ -16,6 +17,8 @@ interface StatusCardProps {
 }
 
 export function StatusCard({ status, loading }: StatusCardProps) {
+  const { t } = useTranslation('dashboard');
+
   const formatUptime = (seconds: number | null) => {
     if (!seconds) return '--';
     const hours = Math.floor(seconds / 3600);
@@ -27,7 +30,7 @@ export function StatusCard({ status, loading }: StatusCardProps) {
   return (
     <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-white">Service Status</h3>
+        <h3 className="text-lg font-semibold text-white">{t('status.title')}</h3>
         <div className="flex items-center gap-2">
           <div
             className={clsx(
@@ -45,7 +48,7 @@ export function StatusCard({ status, loading }: StatusCardProps) {
                 : 'text-red-400'
             )}
           >
-            {loading ? 'Detecting...' : status?.running ? 'Running' : 'Stopped'}
+            {loading ? t('status.detecting') : status?.running ? t('status.running') : t('status.stopped')}
           </span>
         </div>
       </div>
@@ -54,7 +57,7 @@ export function StatusCard({ status, loading }: StatusCardProps) {
         <div className="bg-dark-600 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <Activity size={16} className="text-accent-cyan" />
-            <span className="text-xs text-gray-400">Port</span>
+            <span className="text-xs text-gray-400">{t('status.port')}</span>
           </div>
           <p className="text-xl font-semibold text-white">
             {status?.port || 18789}
@@ -64,7 +67,7 @@ export function StatusCard({ status, loading }: StatusCardProps) {
         <div className="bg-dark-600 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <Cpu size={16} className="text-accent-purple" />
-            <span className="text-xs text-gray-400">Process ID</span>
+            <span className="text-xs text-gray-400">{t('status.pid')}</span>
           </div>
           <p className="text-xl font-semibold text-white">
             {status?.pid || '--'}
@@ -74,7 +77,7 @@ export function StatusCard({ status, loading }: StatusCardProps) {
         <div className="bg-dark-600 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <HardDrive size={16} className="text-accent-green" />
-            <span className="text-xs text-gray-400">Memory</span>
+            <span className="text-xs text-gray-400">{t('status.memory')}</span>
           </div>
           <p className="text-xl font-semibold text-white">
             {status?.memory_mb ? `${status.memory_mb.toFixed(1)} MB` : '--'}
@@ -84,7 +87,7 @@ export function StatusCard({ status, loading }: StatusCardProps) {
         <div className="bg-dark-600 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock size={16} className="text-accent-amber" />
-            <span className="text-xs text-gray-400">Uptime</span>
+            <span className="text-xs text-gray-400">{t('status.uptime')}</span>
           </div>
           <p className="text-xl font-semibold text-white">
             {formatUptime(status?.uptime_seconds || null)}

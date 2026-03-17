@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Server,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../stores/appStore';
 
 interface InstallResult {
@@ -36,6 +37,8 @@ interface Requirement {
 }
 
 export function SystemInfo() {
+  const { t } = useTranslation('dashboard');
+  
   // Get environment state from store
   const environment = useAppStore((state) => state.environment);
   const isCheckingEnvironment = useAppStore((state) => state.isCheckingEnvironment);
@@ -60,7 +63,7 @@ export function SystemInfo() {
         setLocalError(result.error || result.message);
       }
     } catch (e) {
-      setLocalError(`Failed to install Node.js: ${e}`);
+      setLocalError(`${t('systemInfo.installFailed', { name: 'Node.js' })}: ${e}`);
     } finally {
       setInstalling(null);
     }
@@ -78,7 +81,7 @@ export function SystemInfo() {
         setLocalError(result.error || result.message);
       }
     } catch (e) {
-      setLocalError(`Failed to install OpenClaw: ${e}`);
+      setLocalError(`${t('systemInfo.installFailed', { name: 'OpenClaw' })}: ${e}`);
     } finally {
       setInstalling(null);
     }
@@ -92,7 +95,7 @@ export function SystemInfo() {
       // Gateway install opens an elevated terminal — user needs to complete it there
       // Don't auto-refresh; user clicks Refresh when done
     } catch (e) {
-      setLocalError(`Failed to install Gateway Service: ${e}`);
+      setLocalError(`${t('systemInfo.installFailed', { name: t('systemInfo.requirements.gateway.name') })}: ${e}`);
     } finally {
       setInstalling(null);
     }
@@ -110,7 +113,7 @@ export function SystemInfo() {
   if (isCheckingEnvironment && !environment) {
     return (
       <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
-        <h3 className="text-lg font-semibold text-white mb-4">System Requirements</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">{t('systemInfo.title')}</h3>
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 text-claw-400 animate-spin" />
         </div>
@@ -121,8 +124,8 @@ export function SystemInfo() {
   if (!environment) {
     return (
       <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
-        <h3 className="text-lg font-semibold text-white mb-4">System Requirements</h3>
-        <p className="text-gray-400 text-sm">Unable to detect system environment.</p>
+        <h3 className="text-lg font-semibold text-white mb-4">{t('systemInfo.title')}</h3>
+        <p className="text-gray-400 text-sm">{t('systemInfo.detectError')}</p>
         {environmentError && (
           <p className="text-red-400 text-xs mt-2">{environmentError}</p>
         )}
@@ -133,14 +136,14 @@ export function SystemInfo() {
   const requirements: Requirement[] = [
     {
       id: 'nodejs',
-      name: 'Node.js',
-      description: 'JavaScript runtime (v22+ required)',
+      name: t('systemInfo.requirements.nodejs.name'),
+      description: t('systemInfo.requirements.nodejs.description'),
       icon: <Cpu size={18} />,
       installed: environment.node_installed && environment.node_version_ok,
       version: environment.node_version,
       versionOk: environment.node_version_ok,
       versionNote: environment.node_installed && !environment.node_version_ok
-        ? 'Version too old, requires v22+'
+        ? t('systemInfo.requirements.nodejs.versionNote')
         : undefined,
       installAction: handleInstallNodejs,
       downloadUrl: 'https://nodejs.org/en/download',
@@ -148,8 +151,8 @@ export function SystemInfo() {
     },
     {
       id: 'git',
-      name: 'Git',
-      description: 'Version control for MCP & skill repos',
+      name: t('systemInfo.requirements.git.name'),
+      description: t('systemInfo.requirements.git.description'),
       icon: <GitBranch size={18} />,
       installed: environment.git_installed,
       version: environment.git_version,
@@ -158,8 +161,8 @@ export function SystemInfo() {
     },
     {
       id: 'openclaw',
-      name: 'OpenClaw',
-      description: 'AI agent framework',
+      name: t('systemInfo.requirements.openclaw.name'),
+      description: t('systemInfo.requirements.openclaw.description'),
       icon: <Package size={18} />,
       installed: environment.openclaw_installed,
       version: environment.openclaw_version,
@@ -168,8 +171,8 @@ export function SystemInfo() {
     },
     ...(environment.openclaw_installed ? [{
       id: 'gateway',
-      name: 'Gateway Service',
-      description: 'System service (requires admin)',
+      name: t('systemInfo.requirements.gateway.name'),
+      description: t('systemInfo.requirements.gateway.description'),
       icon: <Server size={18} />,
       installed: environment.gateway_service_installed,
       version: null,
@@ -193,11 +196,11 @@ export function SystemInfo() {
             <Shield size={18} className={allReady ? 'text-green-400' : 'text-amber-400'} />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">System Requirements</h3>
+            <h3 className="text-lg font-semibold text-white">{t('systemInfo.title')}</h3>
             <p className="text-xs text-gray-500">
               {allReady
-                ? 'All prerequisites are installed and ready'
-                : `${installedCount}/${totalCount} prerequisites installed`}
+                ? t('systemInfo.allReady')
+                : t('systemInfo.progress', { installed: installedCount, total: totalCount })}
             </p>
           </div>
         </div>
@@ -205,7 +208,7 @@ export function SystemInfo() {
           onClick={handleRefresh}
           disabled={isCheckingEnvironment}
           className="p-2 text-gray-400 hover:text-white hover:bg-dark-600 rounded-lg transition-colors"
-          title="Re-check requirements"
+          title={t('systemInfo.refresh')}
         >
           <RefreshCw size={16} className={isCheckingEnvironment ? 'animate-spin' : ''} />
         </button>
@@ -257,7 +260,7 @@ export function SystemInfo() {
             <div className="flex items-center gap-2">
               {req.installed ? (
                 <span className="text-xs text-green-400 font-medium px-2 py-1 bg-green-500/10 rounded-md">
-                  Ready
+                  {t('systemInfo.ready')}
                 </span>
               ) : (
                 <>
@@ -270,12 +273,12 @@ export function SystemInfo() {
                       {installing === req.id ? (
                         <>
                           <Loader2 size={12} className="animate-spin" />
-                          <span>Installing...</span>
+                          <span>{t('systemInfo.installing')}</span>
                         </>
                       ) : (
                         <>
                           <Download size={12} />
-                          <span>Install</span>
+                          <span>{t('systemInfo.install')}</span>
                         </>
                       )}
                     </button>
@@ -284,10 +287,10 @@ export function SystemInfo() {
                     <button
                       onClick={() => handleOpenUrl(req.downloadUrl!)}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-gray-300 hover:text-white hover:bg-dark-500 rounded-lg transition-colors text-xs"
-                      title={`Download ${req.name}`}
+                      title={`${t('systemInfo.download')} ${req.name}`}
                     >
                       <ExternalLink size={12} />
-                      <span>Download</span>
+                      <span>{t('systemInfo.download')}</span>
                     </button>
                   )}
                 </>

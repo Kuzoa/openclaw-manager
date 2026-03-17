@@ -11,6 +11,7 @@ import clsx from 'clsx';
 import { logStore, LogEntry } from '../../lib/logger';
 import { exportLogFile } from '../../lib/fileExport';
 import { useAppStore } from '../../stores/appStore';
+import { useTranslation } from 'react-i18next';
 
 type FilterLevel = 'all' | 'debug' | 'info' | 'warn' | 'error';
 
@@ -41,6 +42,8 @@ const MODULE_COLORS: Record<string, string> = {
 };
 
 export function Logs() {
+  const { t } = useTranslation('logs');
+  const { t: tCommon } = useTranslation('common');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState<FilterLevel>('all');
   const [moduleFilter, setModuleFilter] = useState<string>('all');
@@ -90,13 +93,13 @@ export function Logs() {
     try {
       const success = await exportLogFile(filteredLogs, defaultFilename);
       if (success) {
-        addNotification({ type: 'success', title: '日志导出成功' });
+        addNotification({ type: 'success', title: t('notifications.exportSuccess') });
       }
       // User cancelled - no notification
     } catch (error) {
       addNotification({
         type: 'error',
-        title: '导出失败',
+        title: t('notifications.exportFailed'),
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -139,7 +142,7 @@ export function Logs() {
             onChange={(e) => setFilter(e.target.value as FilterLevel)}
             className="bg-dark-700 border border-dark-500 rounded-lg px-3 py-1.5 text-sm text-gray-300"
           >
-            <option value="all">All Levels</option>
+            <option value="all">{t('filter.allLevels')}</option>
             <option value="debug">Debug</option>
             <option value="info">Info</option>
             <option value="warn">Warn</option>
@@ -153,7 +156,7 @@ export function Logs() {
           onChange={(e) => setModuleFilter(e.target.value)}
           className="bg-dark-700 border border-dark-500 rounded-lg px-3 py-1.5 text-sm text-gray-300"
         >
-          <option value="all">All Modules</option>
+          <option value="all">{t('filter.allModules')}</option>
           {modules.map(module => (
             <option key={module} value={module}>{module}</option>
           ))}
@@ -163,9 +166,9 @@ export function Logs() {
 
         {/* Statistics */}
         <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span>{filteredLogs.length} / {logs.length} entries</span>
-          <span className="text-red-400">{logs.filter(l => l.level === 'error').length} errors</span>
-          <span className="text-yellow-400">{logs.filter(l => l.level === 'warn').length} warnings</span>
+          <span>{t('stats.entries', { count: filteredLogs.length })} / {t('stats.entries', { count: logs.length })}</span>
+          <span className="text-red-400">{t('stats.errors', { count: logs.filter(l => l.level === 'error').length })}</span>
+          <span className="text-yellow-400">{t('stats.warnings', { count: logs.filter(l => l.level === 'warn').length })}</span>
         </div>
 
         {/* Action buttons */}
@@ -177,26 +180,26 @@ export function Logs() {
               onChange={(e) => setAutoScroll(e.target.checked)}
               className="w-3 h-3 rounded"
             />
-            Auto scroll
+            {t('autoScroll')}
           </label>
           <button
             onClick={handleExport}
             className="icon-button text-gray-400 hover:text-white"
-            title="Export logs"
+            title={t('actions.export')}
           >
             <Download size={16} />
           </button>
           <button
             onClick={() => setLogs(logStore.getAll())}
             className="icon-button text-gray-400 hover:text-white"
-            title="Refresh"
+            title={tCommon('actions.reset')}
           >
             <RefreshCw size={16} />
           </button>
           <button
             onClick={handleClear}
             className="icon-button text-gray-400 hover:text-red-400"
-            title="Clear logs"
+            title={t('actions.clear')}
           >
             <Trash2 size={16} />
           </button>
@@ -208,7 +211,7 @@ export function Logs() {
         {/* Title bar */}
         <div className="flex items-center gap-2 px-4 py-2 bg-dark-700 border-b border-dark-600">
           <Terminal size={14} className="text-gray-500" />
-          <span className="text-xs text-gray-400 font-medium">Application Logs</span>
+          <span className="text-xs text-gray-400 font-medium">{t('title')}</span>
         </div>
 
         {/* Log content */}
@@ -217,7 +220,8 @@ export function Logs() {
             <div className="h-full flex items-center justify-center text-gray-500">
               <div className="text-center">
                 <Terminal size={32} className="mx-auto mb-2 opacity-50" />
-                <p>No logs available</p>
+                <p>{t('empty.title')}</p>
+                <p className="text-xs mt-1">{t('empty.description')}</p>
               </div>
             </div>
           ) : (

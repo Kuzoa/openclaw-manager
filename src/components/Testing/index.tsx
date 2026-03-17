@@ -9,6 +9,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 import { testingLogger } from '../../lib/logger';
 
 interface DiagnosticResult {
@@ -19,6 +20,7 @@ interface DiagnosticResult {
 }
 
 export function Testing() {
+  const { t } = useTranslation('testing');
   const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticResult[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -36,10 +38,10 @@ export function Testing() {
     } catch (e) {
       testingLogger.error('Diagnostics execution failed', e);
       setDiagnosticResults([{
-        name: 'Diagnostics Execution',
+        name: t('diagnostics.execution'),
         passed: false,
         message: String(e),
-        suggestion: 'Please check if OpenClaw is properly installed',
+        suggestion: t('diagnostics.checkInstallation'),
       }]);
     } finally {
       setLoading(false);
@@ -61,9 +63,9 @@ export function Testing() {
                 <Stethoscope size={20} className="text-purple-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">System Diagnostics</h3>
+                <h3 className="text-lg font-semibold text-white">{t('title')}</h3>
                 <p className="text-xs text-gray-500">
-                  Check OpenClaw installation and configuration status
+                  {t('description')}
                 </p>
               </div>
             </div>
@@ -77,7 +79,7 @@ export function Testing() {
               ) : (
                 <Play size={16} />
               )}
-              Run Diagnostics
+              {t('runDiagnostics')}
             </button>
           </div>
 
@@ -86,12 +88,12 @@ export function Testing() {
             <div className="flex gap-4 mb-4 p-3 bg-dark-600 rounded-lg">
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-green-400" />
-                <span className="text-sm text-green-400">{passedCount} passed</span>
+                <span className="text-sm text-green-400">{t('passed', { count: passedCount })}</span>
               </div>
               {failedCount > 0 && (
                 <div className="flex items-center gap-2">
                   <XCircle size={16} className="text-red-400" />
-                  <span className="text-sm text-red-400">{failedCount} failed</span>
+                  <span className="text-sm text-red-400">{t('failed', { count: failedCount })}</span>
                 </div>
               )}
             </div>
@@ -142,18 +144,18 @@ export function Testing() {
           {diagnosticResults.length === 0 && !loading && (
             <div className="text-center py-8 text-gray-500">
               <Stethoscope size={48} className="mx-auto mb-3 opacity-30" />
-              <p>Click "Run Diagnostics" button to start checking system status</p>
+              <p>{t('emptyState')}</p>
             </div>
           )}
         </div>
 
         {/* Instructions */}
         <div className="bg-dark-700/50 rounded-xl p-4 border border-dark-500">
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Diagnostic Instructions</h4>
+          <h4 className="text-sm font-medium text-gray-400 mb-2">{t('instructions.title')}</h4>
           <ul className="text-sm text-gray-500 space-y-1">
-            <li>• System diagnostics checks Node.js, OpenClaw installation, config files and other status</li>
-            <li>• For AI connection testing, go to <span className="text-claw-400">AI Configuration</span> page</li>
-            <li>• For channel testing, go to <span className="text-claw-400">Message Channels</span> page</li>
+            <li>• {t('instructions.checksDescription')}</li>
+            <li>• {t('instructions.aiTesting')} <span className="text-claw-400">{t('instructions.aiConfig')}</span></li>
+            <li>• {t('instructions.channelTesting')} <span className="text-claw-400">{t('instructions.channels')}</span></li>
           </ul>
         </div>
       </div>

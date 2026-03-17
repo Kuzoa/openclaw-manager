@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api, Skill, isTauri } from '../../lib/tauri';
 import { Book, Package, AlertCircle, Loader2, Download, Terminal, CheckCircle, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function Skills() {
+    const { t } = useTranslation('skills');
     const [skills, setSkills] = useState<Skill[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export function Skills() {
                 setSkills([]);
             }
         } catch (e) {
-            setError('Failed to load skills: ' + String(e));
+            setError(t('errors.loadFailed') + ': ' + String(e));
         }
     };
 
@@ -64,9 +66,9 @@ export function Skills() {
         try {
             await api.installClawhub();
             await checkClawhub();
-            setInstallResult({ success: true, message: 'Clawhub installed successfully' });
+            setInstallResult({ success: true, message: t('clawhub.installSuccess') });
         } catch (e) {
-            setError('Failed to install clawhub: ' + String(e));
+            setError(t('errors.clawhubInstallFailed') + ': ' + String(e));
         } finally {
             setInstallingClawhub(false);
         }
@@ -98,22 +100,22 @@ export function Skills() {
             setShowUninstallConfirm(null);
             await fetchSkills();
         } catch (e) {
-            setError('Failed to uninstall skill: ' + String(e));
+            setError(t('errors.uninstallFailed') + ': ' + String(e));
         } finally {
             setUninstallingSkill(false);
         }
     };
 
     const handleUninstallClawhub = async () => {
-        if (!confirm('Are you sure you want to uninstall Clawhub? This will remove the global npm package.')) return;
+        if (!confirm(t('clawhub.uninstallConfirm'))) return;
         setUninstallingClawhub(true);
         setError(null);
         try {
             await api.uninstallClawhub();
             await checkClawhub();
-            setInstallResult({ success: true, message: 'Clawhub uninstalled successfully' });
+            setInstallResult({ success: true, message: t('clawhub.uninstallSuccess') });
         } catch (e) {
-            setError('Failed to uninstall clawhub: ' + String(e));
+            setError(t('errors.clawhubUninstallFailed') + ': ' + String(e));
         } finally {
             setUninstallingClawhub(false);
         }
@@ -125,9 +127,9 @@ export function Skills() {
             {showUninstallConfirm && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-dark-800 border border-dark-600 rounded-xl p-6 max-w-sm w-full shadow-2xl">
-                        <h3 className="text-lg font-bold text-white mb-2">Uninstall Skill?</h3>
+                        <h3 className="text-lg font-bold text-white mb-2">{t('uninstall.title')}</h3>
                         <p className="text-gray-400 text-sm mb-6">
-                            Are you sure you want to verify removing <span className="text-white font-mono">{showUninstallConfirm}</span>? This action cannot be undone.
+                            {t('uninstall.description', { name: showUninstallConfirm })}
                         </p>
                         <div className="flex gap-3 justify-end">
                             <button
@@ -135,7 +137,7 @@ export function Skills() {
                                 className="px-4 py-2 text-gray-300 hover:text-white hover:bg-dark-700 rounded-lg transition-colors text-sm"
                                 disabled={uninstallingSkill}
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 onClick={handleUninstallSkill}
@@ -143,7 +145,7 @@ export function Skills() {
                                 disabled={uninstallingSkill}
                             >
                                 {uninstallingSkill ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                                <span>Uninstall</span>
+                                <span>{t('uninstall.confirm')}</span>
                             </button>
                         </div>
                     </div>
@@ -152,8 +154,8 @@ export function Skills() {
 
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Skills</h2>
-                    <p className="text-gray-400">Manage your OpenClaw skills</p>
+                    <h2 className="text-2xl font-bold text-white mb-2">{t('title')}</h2>
+                    <p className="text-gray-400">{t('description')}</p>
                 </div>
                 {clawhubInstalled && (
                     <button
@@ -162,7 +164,7 @@ export function Skills() {
                         disabled={loading || installingSkill}
                     >
                         <Plus size={18} />
-                        <span>Install Skill</span>
+                        <span>{t('install.title')}</span>
                     </button>
                 )}
             </div>
@@ -181,12 +183,12 @@ export function Skills() {
                         <div>
                             <h3 className={`font-medium ${clawhubInstalled ? 'text-green-200' : 'text-amber-200'
                                 }`}>
-                                {clawhubInstalled ? 'Clawhub Installed' : 'Clawhub CLI Required'}
+                                {clawhubInstalled ? t('clawhub.installed') : t('clawhub.required')}
                             </h3>
                             <p className="text-xs text-gray-400">
                                 {clawhubInstalled
-                                    ? 'The official CLI tool is installed and ready.'
-                                    : 'Install the official CLI tool to manage skills'}
+                                    ? t('clawhub.installedDesc')
+                                    : t('clawhub.requiredDesc')}
                             </p>
                         </div>
                     </div>
@@ -196,7 +198,7 @@ export function Skills() {
                             onClick={handleUninstallClawhub}
                             disabled={uninstallingClawhub}
                             className="p-2 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg transition-colors"
-                            title="Uninstall Clawhub"
+                            title={t('clawhub.uninstall')}
                         >
                             {uninstallingClawhub ? (
                                 <Loader2 size={16} className="animate-spin" />
@@ -213,12 +215,12 @@ export function Skills() {
                             {installingClawhub ? (
                                 <>
                                     <Loader2 size={16} className="animate-spin" />
-                                    <span>Installing...</span>
+                                    <span>{t('clawhub.installing')}</span>
                                 </>
                             ) : (
                                 <>
                                     <Download size={16} />
-                                    <span>Install Clawhub</span>
+                                    <span>{t('clawhub.install')}</span>
                                 </>
                             )}
                         </button>
@@ -250,7 +252,7 @@ export function Skills() {
             {/* Install Skill Dialog */}
             {showInstallDialog && (
                 <div className="bg-dark-700 rounded-2xl border border-dark-600 p-6 mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">Install New Skill</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">{t('install.title')}</h3>
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <Terminal className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
@@ -258,7 +260,7 @@ export function Skills() {
                                 type="text"
                                 value={skillName}
                                 onChange={(e) => setSkillName(e.target.value)}
-                                placeholder="e.g. self-improving-agent"
+                                placeholder={t('install.placeholder')}
                                 className="w-full bg-dark-800 border border-dark-600 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-claw-500 focus:border-transparent outline-none font-mono text-sm"
                                 disabled={installingSkill}
                                 onKeyDown={(e) => e.key === 'Enter' && handleInstallSkill()}
@@ -270,18 +272,18 @@ export function Skills() {
                             className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                             {installingSkill ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                            <span>Install</span>
+                            <span>{t('install.button')}</span>
                         </button>
                         <button
                             onClick={() => setShowInstallDialog(false)}
                             disabled={installingSkill}
                             className="px-4 py-2 text-gray-400 hover:text-white hover:bg-dark-600 rounded-xl transition-colors"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                     </div>
                     <p className="mt-2 text-xs text-gray-500">
-                        Installs using <code className="bg-dark-800 px-1 py-0.5 rounded text-gray-300">npx clawhub install</code>
+                        {t('install.hint')}
                     </p>
                 </div>
             )}
@@ -289,7 +291,7 @@ export function Skills() {
             {loading && (
                 <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 className="w-10 h-10 text-claw-400 animate-spin mb-4" />
-                    <p className="text-gray-400">Loading skills...</p>
+                    <p className="text-gray-400">{t('loading')}</p>
                 </div>
             )}
 
@@ -303,8 +305,8 @@ export function Skills() {
             {!loading && !error && skills.length === 0 && (
                 <div className="py-12 text-center text-gray-500">
                     <Package size={48} className="mx-auto mb-4 opacity-20" />
-                    <p className="text-lg font-medium mb-1">No Skills Found</p>
-                    <p className="text-sm">Install a skill to get started</p>
+                    <p className="text-lg font-medium mb-1">{t('empty.title')}</p>
+                    <p className="text-sm">{t('empty.description')}</p>
                 </div>
             )}
 
@@ -331,7 +333,7 @@ export function Skills() {
                                         <button
                                             onClick={() => setShowUninstallConfirm(skill.id)}
                                             className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                            title={`Remove ${skill.name}`}
+                                            title={t('remove', { name: skill.name })}
                                         >
                                             <Trash2 size={14} />
                                         </button>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { PageType } from '../../App';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface ServiceStatus {
   running: boolean;
@@ -25,20 +26,22 @@ interface SidebarProps {
   serviceStatus: ServiceStatus | null;
 }
 
-const menuItems: { id: PageType; label: string; icon: React.ElementType }[] = [
-  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-  { id: 'mcp', label: 'MCPs', icon: Blocks },
-  { id: 'skills', label: 'Skills', icon: Book },
-  { id: 'agents', label: 'Agents', icon: Users },
-  { id: 'ai', label: 'AI Config', icon: Bot },
-  { id: 'channels', label: 'Channels', icon: MessageSquare },
-
-  { id: 'logs', label: 'Logs', icon: ScrollText },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
 export function Sidebar({ currentPage, onNavigate, serviceStatus }: SidebarProps) {
+  const { t } = useTranslation('layout');
   const isRunning = serviceStatus?.running ?? false;
+
+  const menuItems: { id: PageType; label: string; icon: React.ElementType }[] = [
+    { id: 'dashboard', label: t('nav.overview'), icon: LayoutDashboard },
+    { id: 'mcp', label: t('nav.mcp'), icon: Blocks },
+    { id: 'skills', label: t('nav.skills'), icon: Book },
+    { id: 'agents', label: t('nav.agents'), icon: Users },
+    { id: 'ai', label: t('nav.ai'), icon: Bot },
+    { id: 'channels', label: t('nav.channels'), icon: MessageSquare },
+
+    { id: 'logs', label: t('nav.logs'), icon: ScrollText },
+    { id: 'settings', label: t('nav.settings'), icon: Settings },
+  ];
+
   return (
     <aside className="w-64 bg-dark-800 border-r border-dark-600 flex flex-col">
       {/* Logo area (macOS titlebar drag) */}
@@ -94,10 +97,10 @@ export function Sidebar({ currentPage, onNavigate, serviceStatus }: SidebarProps
           <div className="flex items-center gap-2 mb-2">
             <div className={clsx('status-dot', isRunning ? 'running' : 'stopped')} />
             <span className="text-xs text-gray-400">
-              {isRunning ? 'Service Running' : 'Service Stopped'}
+              {isRunning ? t('service.running') : t('service.stopped')}
             </span>
           </div>
-          <p className="text-xs text-gray-500">Port: {serviceStatus?.port ?? 18789}</p>
+          <p className="text-xs text-gray-500">{t('service.port')}: {serviceStatus?.port ?? 18789}</p>
         </div>
       </div>
     </aside>

@@ -10,9 +10,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 import { serviceLogger } from '../../lib/logger';
 
 export function ServiceManager() {
+  const { t } = useTranslation('service');
   const [logs, setLogs] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -59,7 +61,7 @@ export function ServiceManager() {
       await fetchLogs();
     } catch (e) {
       serviceLogger.error(`❌ ${action} failed`, e);
-      alert(`Operation failed: ${e}`);
+      alert(`${t('actionFailed')}: ${e}`);
     } finally {
       setActionLoading(null);
     }
@@ -97,7 +99,7 @@ export function ServiceManager() {
             ) : (
               <Play size={16} />
             )}
-            Start
+            {t('actions.start')}
           </button>
 
           <button
@@ -114,7 +116,7 @@ export function ServiceManager() {
             ) : (
               <Square size={16} />
             )}
-            Stop
+            {t('actions.stop')}
           </button>
 
           <button
@@ -131,7 +133,7 @@ export function ServiceManager() {
             ) : (
               <RotateCcw size={16} />
             )}
-            Restart
+            {t('actions.restart')}
           </button>
         </div>
 
@@ -145,7 +147,7 @@ export function ServiceManager() {
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="w-4 h-4 rounded border-dark-500 bg-dark-600 text-claw-500 focus:ring-claw-500"
             />
-            Auto refresh
+            {t('autoRefresh')}
           </label>
 
           <button
@@ -163,11 +165,11 @@ export function ServiceManager() {
         <div className="flex items-center gap-2 px-4 py-2 bg-dark-700 border-b border-dark-600">
           <Terminal size={14} className="text-gray-500" />
           <span className="text-xs text-gray-400 font-medium">
-            /tmp/openclaw-gateway.log
+            {t('logFile')}
           </span>
           <div className="flex-1" />
           <span className="text-xs text-gray-500">
-            {logs.length} lines
+            {t('linesCount', { count: logs.length })}
           </span>
         </div>
 
@@ -177,7 +179,7 @@ export function ServiceManager() {
             <div className="h-full flex items-center justify-center text-gray-500">
               <div className="text-center">
                 <FileText size={32} className="mx-auto mb-2 opacity-50" />
-                <p>No logs available</p>
+                <p>{t('noLogs')}</p>
               </div>
             </div>
           ) : (

@@ -17,10 +17,12 @@ import {
   Clock,
   Server,
   FileJson,
-  GitMerge
+  GitMerge,
+  Languages
 } from 'lucide-react';
 import { appLogger } from '../../lib/logger';
 import { isTauri } from '../../lib/tauri';
+import { useTranslation } from 'react-i18next';
 
 interface InstallResult {
   success: boolean;
@@ -79,6 +81,9 @@ interface MemoryConfig {
 }
 
 export function Settings({ onEnvironmentChange }: SettingsProps) {
+  const { t, i18n } = useTranslation('settings');
+  const { t: tCommon } = useTranslation('common');
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -194,7 +199,6 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
     setValidating(true);
     setValidateStatus(null);
     try {
-      // Get the currently saved config, not the draft (so user must save first, or we auto-save, but it's simpler to just validate what's saved)
       const currentConfig = await invoke<any>('get_config');
       const jsonStr = JSON.stringify(currentConfig, null, 2);
 
@@ -241,7 +245,6 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
       if (path) {
         await invoke('import_config', { path });
         alert('Configuration imported successfully! Please restart the manager to apply all changes.');
-        // Reload settings to reflect changes
         window.location.reload();
       }
     } catch (e) {
@@ -340,6 +343,11 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
     }
   };
 
+  // Language change handler
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -352,6 +360,34 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
     <div className="h-full overflow-y-auto scroll-container pr-2 pb-20">
       <div className="max-w-3xl space-y-6 mx-auto">
 
+        {/* Language Settings - First Block */}
+        <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center">
+              <Languages size={20} className="text-brand-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">{t('language.label')}</h3>
+              <p className="text-xs text-gray-500">{t('language.description')}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-dark-600 rounded-lg">
+            <div>
+              <p className="text-sm text-white">{t('language.label')}</p>
+              <p className="text-xs text-gray-500">{t('language.description')}</p>
+            </div>
+            <select
+              value={i18n.language}
+              onChange={e => handleLanguageChange(e.target.value)}
+              className="input-base w-auto min-w-[140px]"
+            >
+              <option value="en">English</option>
+              <option value="zh">中文</option>
+            </select>
+          </div>
+        </div>
+
         {/* Compaction & Memory */}
         <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
           <div className="flex items-center gap-3 mb-6">
@@ -359,16 +395,16 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <Database size={20} className="text-purple-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Compaction & Memory</h3>
-              <p className="text-xs text-gray-500">Manage agent memory optimization</p>
+              <h3 className="text-lg font-semibold text-white">{t('compaction.title')}</h3>
+              <p className="text-xs text-gray-500">{t('compaction.description')}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-dark-600 rounded-lg">
               <div>
-                <p className="text-sm text-white">Enable Compaction</p>
-                <p className="text-xs text-gray-500">Compress conversation history when it gets too long</p>
+                <p className="text-sm text-white">{t('compaction.enable')}</p>
+                <p className="text-xs text-gray-500">{t('compaction.enableDescription')}</p>
               </div>
               <input
                 type="checkbox"
@@ -380,7 +416,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
 
             {compaction.enabled && (
               <div className="pl-4 border-l-2 border-dark-600">
-                <label className="block text-sm text-gray-400 mb-2">Token Threshold</label>
+                <label className="block text-sm text-gray-400 mb-2">{t('compaction.threshold')}</label>
                 <input
                   type="number"
                   value={compaction.threshold || ''}
@@ -388,14 +424,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                   placeholder="e.g. 8000"
                   className="input-base"
                 />
-                <p className="text-xs text-gray-500 mt-1">Number of tokens before compaction triggers.</p>
+                <p className="text-xs text-gray-500 mt-1">{t('compaction.thresholdDescription')}</p>
               </div>
             )}
 
             <div className="flex items-center justify-between p-4 bg-dark-600 rounded-lg">
               <div>
-                <p className="text-sm text-white">Context Pruning</p>
-                <p className="text-xs text-gray-500">Limit the number of recent messages kept in context</p>
+                <p className="text-sm text-white">{t('compaction.contextPruning')}</p>
+                <p className="text-xs text-gray-500">{t('compaction.contextPruningDescription')}</p>
               </div>
               <input
                 type="checkbox"
@@ -407,7 +443,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
 
             {compaction.context_pruning && (
               <div className="pl-4 border-l-2 border-dark-600">
-                <label className="block text-sm text-gray-400 mb-2">Max Messages</label>
+                <label className="block text-sm text-gray-400 mb-2">{t('compaction.maxMessages')}</label>
                 <input
                   type="number"
                   value={compaction.max_context_messages || ''}
@@ -415,21 +451,21 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                   placeholder="e.g. 50"
                   className="input-base"
                 />
-                <p className="text-xs text-gray-500 mt-1">Maximum number of recent messages to keep.</p>
+                <p className="text-xs text-gray-500 mt-1">{t('compaction.maxMessagesDescription')}</p>
               </div>
             )}
 
             <div className="flex items-center justify-between p-4 bg-dark-600 rounded-lg">
               <div>
-                <p className="text-sm text-white">Local Memory Search</p>
-                <p className="text-xs text-gray-500">Enable offline embeddings mapping</p>
+                <p className="text-sm text-white">{t('compaction.localMemorySearch')}</p>
+                <p className="text-xs text-gray-500">{t('compaction.localMemorySearchDescription')}</p>
               </div>
               <select
                 value={memoryConfig.provider || ''}
                 onChange={e => setMemoryConfig({ ...memoryConfig, provider: e.target.value || null })}
                 className="input-base w-auto min-w-[120px]"
               >
-                <option value="">None (Disabled)</option>
+                <option value="">{t('compaction.noneDisabled')}</option>
                 <option value="ollama">Ollama</option>
               </select>
             </div>
@@ -443,14 +479,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <Clock size={20} className="text-orange-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Workspace</h3>
-              <p className="text-xs text-gray-500">Time and localization settings</p>
+              <h3 className="text-lg font-semibold text-white">{t('workspace.title')}</h3>
+              <p className="text-xs text-gray-500">{t('workspace.description')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Timezone</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('workspace.timezone')}</label>
               <select
                 value={workspace.timezone || 'Asia/Shanghai'}
                 onChange={e => setWorkspace({ ...workspace, timezone: e.target.value })}
@@ -466,17 +502,16 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Time Format</label>
-              <select
-                value={workspace.time_format || ''}
-                onChange={e => setWorkspace({ ...workspace, time_format: e.target.value || null })}
-                className="input-base"
-              >
-                <option value="">Default (24h)</option>
-                <option value="12h">12h (AM/PM)</option>
-                <option value="24h">24h</option>
-              </select>
-            </div>
+              <label className="block text-sm text-gray-400 mb-2">{t('workspace.timeFormat')}</label>
+                              <select
+                                value={workspace.time_format || ''}
+                                onChange={e => setWorkspace({ ...workspace, time_format: e.target.value || null })}
+                                className="input-base"
+                              >
+                                <option value="">{t('workspace.default24h')}</option>
+                                <option value="12h">{t('workspace.12hFormat')}</option>
+                                <option value="24h">{t('workspace.24hFormat')}</option>
+                              </select>            </div>
           </div>
         </div>
 
@@ -487,14 +522,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <Server size={20} className="text-cyan-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Gateway Settings</h3>
-              <p className="text-xs text-gray-500">Network and logging configuration</p>
+              <h3 className="text-lg font-semibold text-white">{t('gateway.title')}</h3>
+              <p className="text-xs text-gray-500">{t('gateway.description')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Gateway Port</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('gateway.port')}</label>
               <input
                 type="number"
                 value={gateway.port}
@@ -502,11 +537,11 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                 className="input-base"
               />
               <p className="text-xs text-yellow-500/80 mt-1 flex items-center gap-1">
-                <AlertTriangle size={12} /> Requires restart
+                <AlertTriangle size={12} /> {tCommon('status.requiresRestart')}
               </p>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Log Level</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('gateway.logLevel')}</label>
               <select
                 value={gateway.log_level}
                 onChange={e => setGateway({ ...gateway, log_level: e.target.value })}
@@ -528,14 +563,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <GitMerge size={20} className="text-indigo-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Subagent Defaults</h3>
-              <p className="text-xs text-gray-500">Global limits for nested subagent spawning</p>
+              <h3 className="text-lg font-semibold text-white">{t('subagent.title')}</h3>
+              <p className="text-xs text-gray-500">{t('subagent.description')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Max Spawn Depth</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('subagent.maxSpawnDepth')}</label>
               <input
                 type="number"
                 min={0}
@@ -545,10 +580,10 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                 className="input-base"
                 placeholder="2"
               />
-              <p className="text-xs text-gray-600 mt-1">Nesting levels</p>
+              <p className="text-xs text-gray-600 mt-1">{t('subagent.maxSpawnDepthDescription')}</p>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Max Children / Agent</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('subagent.maxChildrenPerAgent')}</label>
               <input
                 type="number"
                 min={0}
@@ -558,10 +593,10 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                 className="input-base"
                 placeholder="5"
               />
-              <p className="text-xs text-gray-600 mt-1">Per parent</p>
+              <p className="text-xs text-gray-600 mt-1">{t('subagent.maxChildrenPerAgentDescription')}</p>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Max Concurrent</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('subagent.maxConcurrent')}</label>
               <input
                 type="number"
                 min={0}
@@ -571,15 +606,15 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                 className="input-base"
                 placeholder="8"
               />
-              <p className="text-xs text-gray-600 mt-1">System-wide</p>
+              <p className="text-xs text-gray-600 mt-1">{t('subagent.maxConcurrentDescription')}</p>
             </div>
           </div>
 
           <div className="mt-4 pt-4 border-t border-dark-600">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-sm text-white">Inline File Attachments</p>
-                <p className="text-xs text-gray-500">Allow subagents to process files</p>
+                <p className="text-sm text-white">{t('subagent.inlineAttachments')}</p>
+                <p className="text-xs text-gray-500">{t('subagent.inlineAttachmentsDescription')}</p>
               </div>
               <input
                 type="checkbox"
@@ -591,7 +626,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
 
             {subagentDefaults.attachments_enabled && (
               <div className="pl-4 border-l-2 border-dark-600">
-                <label className="block text-sm text-gray-400 mb-2">Max Total Size (Bytes)</label>
+                <label className="block text-sm text-gray-400 mb-2">{t('subagent.maxTotalSize')}</label>
                 <input
                   type="number"
                   value={subagentDefaults.attachments_max_total_bytes || ''}
@@ -599,7 +634,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                   placeholder="e.g. 5242880 (5MB)"
                   className="input-base"
                 />
-                <p className="text-xs text-gray-500 mt-1">Limit across standard session attachment drops.</p>
+                <p className="text-xs text-gray-500 mt-1">{t('subagent.maxTotalSizeDescription')}</p>
               </div>
             )}
           </div>
@@ -612,8 +647,8 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <FileJson size={20} className="text-slate-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Configuration Management</h3>
-              <p className="text-xs text-gray-500">Backup and restore settings</p>
+              <h3 className="text-lg font-semibold text-white">{t('configManagement.title')}</h3>
+              <p className="text-xs text-gray-500">{t('configManagement.description')}</p>
             </div>
           </div>
 
@@ -623,14 +658,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               className="flex-1 flex items-center justify-center gap-2 p-3 bg-dark-600 hover:bg-dark-500 rounded-lg transition-colors text-sm text-white border border-dark-500 hover:border-dark-400"
             >
               <Download size={16} />
-              Export Config
+              {tCommon('actions.export')} {t('configManagement.title')}
             </button>
             <button
               onClick={handleImport}
               className="flex-1 flex items-center justify-center gap-2 p-3 bg-dark-600 hover:bg-dark-500 rounded-lg transition-colors text-sm text-white border border-dark-500 hover:border-dark-400"
             >
               <Upload size={16} />
-              Import Config
+              {tCommon('actions.import')} {t('configManagement.title')}
             </button>
           </div>
           <div className="mt-4 pt-4 border-t border-dark-600">
@@ -640,7 +675,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               className="w-full flex items-center justify-center gap-2 p-3 bg-dark-600 hover:bg-dark-500 rounded-lg transition-colors text-sm text-white border border-dark-500 hover:border-dark-400"
             >
               {validating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-              Validate Config Schema
+              {t('configManagement.validateSchema')}
             </button>
             {validateStatus && (
               <div className={`mt-3 p-3 rounded-lg text-sm border ${validateStatus.success ? 'bg-green-900/20 border-green-800/30 text-green-400' : 'bg-red-900/20 border-red-800/30 text-red-400 whitespace-pre-line'}`}>
@@ -657,15 +692,15 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <Globe size={20} className="text-blue-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Browser Control</h3>
-              <p className="text-xs text-gray-500">Configure built-in browser capabilities</p>
+              <h3 className="text-lg font-semibold text-white">{t('browser.title')}</h3>
+              <p className="text-xs text-gray-500">{t('browser.description')}</p>
             </div>
           </div>
 
           <div className="flex items-center justify-between p-4 bg-dark-600 rounded-lg mb-4">
             <div>
-              <p className="text-sm text-white">Enable Browser Tool</p>
-              <p className="text-xs text-gray-500">Allow agents to browse the web</p>
+              <p className="text-sm text-white">{t('browser.enable')}</p>
+              <p className="text-xs text-gray-500">{t('browser.enableDescription')}</p>
             </div>
             <input
               type="checkbox"
@@ -678,8 +713,8 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
           {browser.enabled && (
             <div className="flex items-center justify-between p-4 bg-dark-600 rounded-lg">
               <div>
-                <p className="text-sm text-white">Browser Chrome Color</p>
-                <p className="text-xs text-gray-500">Custom color for the browser window</p>
+                <p className="text-sm text-white">{t('browser.chromeColor')}</p>
+                <p className="text-xs text-gray-500">{t('browser.chromeColorDescription')}</p>
               </div>
               <div className="flex items-center gap-3">
                 <input
@@ -688,7 +723,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                   onChange={e => setBrowser({ ...browser, color: e.target.value })}
                   className="w-8 h-8 rounded overflow-hidden cursor-pointer border-0 p-0"
                 />
-                <span className="text-sm font-mono text-gray-400">{browser.color || 'Default'}</span>
+                <span className="text-sm font-mono text-gray-400">{browser.color || t('browser.default')}</span>
               </div>
             </div>
           )}
@@ -701,14 +736,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <Server size={20} className="text-red-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Tools & Security</h3>
-              <p className="text-xs text-gray-500">Manage tool access profiles and settings</p>
+              <h3 className="text-lg font-semibold text-white">{t('tools.title')}</h3>
+              <p className="text-xs text-gray-500">{t('tools.description')}</p>
             </div>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Security Profile</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('tools.securityProfile')}</label>
               <select
                 value={toolsProfile}
                 onChange={e => setToolsProfile(e.target.value)}
@@ -719,14 +754,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                 <option value="coding">Coding</option>
                 <option value="full">Full Access</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">Configures baseline allowlist for built-in tools across all agents.</p>
+              <p className="text-xs text-gray-500 mt-1">{t('tools.securityProfileDescription')}</p>
             </div>
 
             <div className="pt-4 border-t border-dark-600">
-              <h4 className="text-sm font-medium text-white mb-4">Native PDF Support</h4>
+              <h4 className="text-sm font-medium text-white mb-4">{t('tools.nativePdfSupport')}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Max Pages</label>
+                  <label className="block text-sm text-gray-400 mb-2">{t('tools.maxPages')}</label>
                   <input
                     type="number"
                     value={pdfConfig.max_pages || ''}
@@ -736,7 +771,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Max Size (MB)</label>
+                  <label className="block text-sm text-gray-400 mb-2">{t('tools.maxSizeMB')}</label>
                   <input
                     type="number"
                     value={pdfConfig.max_bytes_mb || ''}
@@ -757,14 +792,14 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <Globe size={20} className="text-orange-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Web Search</h3>
-              <p className="text-xs text-gray-500">Configure search engine APIs</p>
+              <h3 className="text-lg font-semibold text-white">{t('webSearch.title')}</h3>
+              <p className="text-xs text-gray-500">{t('webSearch.description')}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Brave Search API Key</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('webSearch.braveApiKey')}</label>
               <input
                 type="password"
                 value={webConfig.brave_api_key || ''}
@@ -772,7 +807,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                 placeholder="BSA-..."
                 className="input-base"
               />
-              <p className="text-xs text-gray-500 mt-1">Required for agents to perform web searches.</p>
+              <p className="text-xs text-gray-500 mt-1">{t('webSearch.braveApiKeyDescription')}</p>
             </div>
           </div>
         </div>
@@ -784,14 +819,13 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
               <ArrowUpCircle size={20} className="text-emerald-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white">Manager Update</h3>
-              <p className="text-xs text-gray-500">Keep OpenClaw Manager up to date</p>
+              <h3 className="text-lg font-semibold text-white">{t('managerUpdate.title')}</h3>
+              <p className="text-xs text-gray-500">{t('managerUpdate.description')}</p>
             </div>
             <span className="text-xs font-mono text-gray-500 bg-dark-600 px-2 py-1 rounded">v{appVersion}</span>
           </div>
 
           <div className="space-y-4">
-            {/* Check for updates button */}
             {!managerUpdateAvailable && !managerUpdateDone && (
               <button
                 onClick={checkManagerUpdate}
@@ -804,32 +838,29 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                   <RefreshCw size={18} className="text-emerald-400" />
                 )}
                 <div className="flex-1">
-                  <p className="text-sm text-white">{managerChecking ? 'Checking...' : 'Check for Updates'}</p>
-                  <p className="text-xs text-gray-500">Check GitHub for the latest Manager version</p>
+                  <p className="text-sm text-white">{managerChecking ? t('managerUpdate.checking') : t('managerUpdate.check')}</p>
+                  <p className="text-xs text-gray-500">{t('managerUpdate.checkDescription')}</p>
                 </div>
               </button>
             )}
 
-            {/* Up to date message */}
             {managerCheckDone && !managerUpdateAvailable && (
               <div className="flex items-center gap-3 p-4 bg-emerald-900/20 rounded-lg border border-emerald-800/30">
                 <CheckCircle size={18} className="text-emerald-400" />
-                <p className="text-sm text-emerald-300">You're on the latest version!</p>
+                <p className="text-sm text-emerald-300">{t('managerUpdate.upToDate')}</p>
               </div>
             )}
 
-            {/* Update available */}
             {managerUpdateAvailable && !managerUpdateDone && (
               <div className="p-4 bg-dark-600 rounded-lg space-y-3">
                 <div className="flex items-center gap-2">
                   <Download size={16} className="text-emerald-400" />
-                  <span className="text-sm font-medium text-white">Update available: v{managerUpdateVersion}</span>
+                  <span className="text-sm font-medium text-white">{t('managerUpdate.updateAvailable', { version: managerUpdateVersion })}</span>
                 </div>
                 {managerUpdateBody && (
                   <p className="text-xs text-gray-400 whitespace-pre-line max-h-32 overflow-y-auto">{managerUpdateBody}</p>
                 )}
 
-                {/* Download progress */}
                 {managerDownloading && (
                   <div className="space-y-1">
                     <div className="w-full bg-dark-500 rounded-full h-2">
@@ -848,30 +879,28 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-claw-600 hover:from-emerald-500 hover:to-claw-500 text-white text-sm font-medium rounded-lg transition-all"
                   >
                     <Download size={16} />
-                    Download & Install
+                    {t('managerUpdate.downloadInstall')}
                   </button>
                 )}
               </div>
             )}
 
-            {/* Update installed - restart */}
             {managerUpdateDone && (
               <div className="p-4 bg-emerald-900/20 rounded-lg border border-emerald-800/30 space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-emerald-400" />
-                  <span className="text-sm font-medium text-emerald-300">Update installed successfully!</span>
+                  <span className="text-sm font-medium text-emerald-300">{t('managerUpdate.installSuccess')}</span>
                 </div>
                 <button
                   onClick={restartApp}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   <RefreshCw size={16} />
-                  Restart Now
+                  {t('managerUpdate.restartNow')}
                 </button>
               </div>
             )}
 
-            {/* Error message */}
             {managerUpdateError && (
               <div className="flex items-start gap-2 p-3 bg-red-900/20 rounded-lg border border-red-800/30">
                 <AlertTriangle size={16} className="text-red-400 mt-0.5 shrink-0" />
@@ -887,7 +916,7 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
             <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
               <AlertTriangle size={20} className="text-red-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Danger Zone</h3>
+            <h3 className="text-lg font-semibold text-white">{t('dangerZone.title')}</h3>
           </div>
           <button
             onClick={() => setShowUninstallConfirm(true)}
@@ -895,29 +924,29 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
           >
             <Trash2 size={18} className="text-red-400" />
             <div className="flex-1">
-              <p className="text-sm text-red-300">Uninstall OpenClaw</p>
+              <p className="text-sm text-red-300">{tCommon('actions.uninstall')} OpenClaw</p>
             </div>
           </button>
         </div>
 
         {/* Global Save Button (Floating) */}
-        <div className="fixed bottom-6 right-6 z-40">
+        <div className="fixed bottom-4 right-4 z-40">
           <button
             onClick={handleSave}
             disabled={saving || saveSuccess}
-            className={`shadow-xl flex items-center gap-2 px-6 py-3 rounded-full text-base font-medium transition-all ${saveSuccess
+            className={`shadow-lg flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${saveSuccess
               ? 'bg-green-600 text-white hover:bg-green-700'
               : 'btn-primary'
               }`}
           >
             {saving ? (
-              <Loader2 size={20} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : saveSuccess ? (
-              <CheckCircle size={20} />
+              <CheckCircle size={16} />
             ) : (
-              <Save size={20} />
+              <Save size={16} />
             )}
-            {saveSuccess ? 'Saved!' : 'Save Settings'}
+            {saveSuccess ? tCommon('status.success') + '!' : tCommon('actions.save') + ' ' + t('title')}
           </button>
         </div>
       </div>
@@ -927,19 +956,19 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500 max-w-md w-full shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">Uninstall OpenClaw</h3>
+              <h3 className="text-lg font-semibold text-white">{tCommon('actions.uninstall')} OpenClaw</h3>
               <button onClick={() => setShowUninstallConfirm(false)}><X size={20} className="text-gray-400 hover:text-white" /></button>
             </div>
 
             {!uninstallResult ? (
               <>
-                <p className="text-gray-300 mb-4">Are you sure? This will <span className="text-red-400 font-semibold">permanently delete</span> the entire <code className="bg-dark-600 px-1.5 py-0.5 rounded text-red-300 text-xs">~/.openclaw</code> folder (all configs, agents, and data) and uninstall the OpenClaw CLI.</p>
-                <p className="text-yellow-400/80 text-xs mb-6 flex items-center gap-2"><AlertTriangle size={14} /> This action cannot be undone.</p>
+                <p className="text-gray-300 mb-4">{t('dangerZone.uninstallConfirm')} <span className="text-red-400 font-semibold">{t('dangerZone.permanentlyDelete')}</span> {t('dangerZone.entireFolder')}</p>
+                <p className="text-yellow-400/80 text-xs mb-6 flex items-center gap-2"><AlertTriangle size={14} /> {t('dangerZone.cannotBeUndone')}</p>
                 <div className="flex gap-3">
-                  <button onClick={() => setShowUninstallConfirm(false)} className="flex-1 btn-secondary">Cancel</button>
+                  <button onClick={() => setShowUninstallConfirm(false)} className="flex-1 btn-secondary">{tCommon('actions.cancel')}</button>
                   <button onClick={handleUninstall} disabled={uninstalling} className="flex-1 btn-primary bg-red-600 hover:bg-red-500 flex justify-center gap-2">
                     {uninstalling ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-                    Uninstall
+                    {tCommon('actions.uninstall')}
                   </button>
                 </div>
               </>

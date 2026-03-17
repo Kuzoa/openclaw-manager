@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
+import { useTranslation } from 'react-i18next';
 import {
   Check,
   Eye,
@@ -984,6 +985,7 @@ function ProviderCard({ provider, officialProviders, onSetPrimary, onRefresh, on
 // ============ Main Component ============
 
 export function AIConfig() {
+  const { t } = useTranslation('ai');
   const [loading, setLoading] = useState(true);
   const [officialProviders, setOfficialProviders] = useState<OfficialProvider[]>([]);
   const [aiConfig, setAiConfig] = useState<AIConfigOverview | null>(null);
@@ -1096,10 +1098,10 @@ export function AIConfig() {
             <div>
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Sparkles size={22} className="text-claw-400" />
-                AI Model Configuration
+                {t('title')}
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Manage AI Providers and models used by OpenClaw
+                {t('description')}
               </p>
             </div>
             <button
@@ -1107,7 +1109,7 @@ export function AIConfig() {
               className="btn-primary flex items-center gap-2"
             >
               <Plus size={16} />
-              Add Provider
+              {t('actions.add')}
             </button>
           </div>
 
@@ -1117,19 +1119,19 @@ export function AIConfig() {
               <Star size={24} className="text-claw-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-400">Current Primary Model</p>
+              <p className="text-sm text-gray-400">{t('overview.primaryModel')}</p>
               {aiConfig?.primary_model ? (
                 <p className="text-lg font-medium text-white">{aiConfig.primary_model}</p>
               ) : (
-                <p className="text-lg text-gray-500">Not Set</p>
+                <p className="text-lg text-gray-500">{t('overview.notSet')}</p>
               )}
             </div>
             <div className="text-right mr-4">
               <p className="text-sm text-gray-500">
-                {aiConfig?.configured_providers.length || 0} Providers
+                {aiConfig?.configured_providers.length || 0} {t('overview.configuredProviders')}
               </p>
               <p className="text-sm text-gray-500">
-                {aiConfig?.available_models.length || 0} Available Models
+                {aiConfig?.available_models.length || 0} {t('overview.availableModels')}
               </p>
             </div>
             <button
@@ -1142,7 +1144,7 @@ export function AIConfig() {
               ) : (
                 <Zap size={16} />
               )}
-              Test Connection
+              {testing ? t('test.testing') : t('test.runTest')}
             </button>
           </div>
 
@@ -1199,7 +1201,7 @@ export function AIConfig() {
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-white flex items-center gap-2">
             <Server size={18} className="text-gray-500" />
-            Configured Providers
+            {t('providers.configuredTitle')}
           </h3>
 
           {aiConfig?.configured_providers.length === 0 ? (
@@ -1207,12 +1209,11 @@ export function AIConfig() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-dark-600 flex items-center justify-center">
                 <Plus size={24} className="text-gray-500" />
               </div>
-              <p className="text-gray-400 mb-4">No AI Providers configured yet</p>
-              <button
+                              <p className="text-gray-400 mb-4">{t('providers.empty')}</p>              <button
                 onClick={() => setShowAddDialog(true)}
                 className="btn-primary"
               >
-                Add First Provider
+                {t('providers.addFirst')}
               </button>
             </div>
           ) : (
@@ -1264,12 +1265,12 @@ export function AIConfig() {
 
         {/* Configuration Notes */}
         <div className="bg-dark-700/50 rounded-xl p-4 border border-dark-500">
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Configuration Notes</h4>
+          <h4 className="text-sm font-medium text-gray-400 mb-2">{t('notes.title')}</h4>
           <ul className="text-sm text-gray-500 space-y-1">
-            <li>• Provider configuration is saved in <code className="text-claw-400">~/.openclaw/openclaw.json</code></li>
-            <li>• Supports official Providers (Anthropic, OpenAI, Kimi, etc.) and custom OpenAI/Anthropic compatible APIs</li>
-            <li>• The primary model is used for Agent's default inference and can be switched at any time</li>
-            <li>• Restart the service for configuration changes to take effect</li>
+            <li>• {t('notes.savedIn')} <code className="text-claw-400">~/.openclaw/openclaw.json</code></li>
+            <li>• {t('notes.supportsOfficial')}</li>
+            <li>• {t('notes.primaryModel')}</li>
+            <li>• {t('notes.restart')}</li>
           </ul>
         </div>
       </div>

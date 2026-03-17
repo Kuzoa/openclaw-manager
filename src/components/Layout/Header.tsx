@@ -3,36 +3,27 @@ import { PageType } from '../../App';
 import { RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-shell';
 import { invoke } from '@tauri-apps/api/core';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   currentPage: PageType;
 }
 
-const pageTitles: Record<PageType, { title: string; description: string }> = {
-  dashboard: { title: 'Overview', description: 'Service status, logs and quick actions' },
-  mcp: { title: 'MCP Servers', description: 'Manage Model Context Protocol servers' },
-  skills: { title: 'Skills', description: 'Manage OpenClaw skills' },
-  ai: { title: 'AI Model Configuration', description: 'Configure AI providers and models' },
-  channels: { title: 'Message Channels', description: 'Configure Telegram, Discord, Lark, etc.' },
-  agents: { title: 'Agent Routing', description: 'Manage agents and binding rules' },
-
-  logs: { title: 'Application Logs', description: 'View Manager application console logs' },
-  settings: { title: 'Settings', description: 'Identity configuration and advanced options' },
-};
-
 export function Header({ currentPage }: HeaderProps) {
-  const { title, description } = pageTitles[currentPage];
+  const { t: tLayout } = useTranslation('layout');
   const [opening, setOpening] = useState(false);
+
+  // Get page info from layout translations
+  const title = tLayout(`header.${currentPage}.title` as any);
+  const description = tLayout(`header.${currentPage}.description` as any);
 
   const handleOpenDashboard = async () => {
     setOpening(true);
     try {
-      // Get Dashboard URL with token (will auto-generate if no token exists)
       const url = await invoke<string>('get_dashboard_url');
       await open(url);
     } catch (e) {
       console.error('Failed to open Dashboard:', e);
-      // Fallback: use window.open (without token)
       window.open('http://localhost:18789', '_blank');
     } finally {
       setOpening(false);
@@ -52,7 +43,7 @@ export function Header({ currentPage }: HeaderProps) {
         <button
           onClick={() => window.location.reload()}
           className="icon-button text-gray-400 hover:text-white"
-          title="Refresh"
+          title={tLayout('header.refresh')}
         >
           <RefreshCw size={16} />
         </button>
@@ -63,7 +54,7 @@ export function Header({ currentPage }: HeaderProps) {
           title="Open Web Dashboard"
         >
           {opening ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
-          <span>Dashboard</span>
+          <span>{tLayout('header.openDashboard')}</span>
         </button>
       </div>
     </header>

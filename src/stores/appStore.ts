@@ -3,24 +3,27 @@ import { invoke } from '@tauri-apps/api/core';
 import type { ServiceStatus, SystemInfo } from '../lib/tauri';
 import type { EnvironmentStatus, DetectionStep } from '../types';
 import { setupLogger } from '../lib/logger';
+import i18n from '../i18n';
 
 /**
  * Log detection steps to the Setup logger
  */
 function logDetectionSteps(steps: DetectionStep[], openclawInstalled: boolean, openclawVersion: string | null): void {
-  setupLogger.info('🔍 开始环境检查...');
+  const t = i18n.getFixedT(null, 'logs');
+  
+  setupLogger.info(`🔍 ${t('detection.start')}`);
   
   if (steps.length === 0) {
     // No detection steps - just log final status
     if (openclawInstalled) {
-      setupLogger.info(`✅ 环境检查完成: ${openclawVersion || 'OpenClaw 已安装'}`);
+      setupLogger.info(`✅ ${t('detection.completeInstalled', { version: openclawVersion || t('detection.installed') })}`);
     } else {
-      setupLogger.warn('⚠️ 环境检查完成: OpenClaw 未安装');
+      setupLogger.warn(`⚠️ ${t('detection.completeNotInstalled')}`);
     }
     return;
   }
   
-  setupLogger.info('📋 检测过程:');
+  setupLogger.info(`📋 ${t('detection.process')}:`);
   
   // Group steps by phase
   const phaseMap = new Map<string, DetectionStep[]>();
@@ -39,27 +42,27 @@ function logDetectionSteps(steps: DetectionStep[], openclawInstalled: boolean, o
     const phaseSteps = phaseMap.get(phase)!;
     phaseSteps.forEach((step) => {
       const stepPrefix = isLastPhase ? '        └─' : '  │     └─';
-      setupLogger.info(`${stepPrefix} 检查: ${step.target}`);
+      setupLogger.info(`${stepPrefix} ${t('detection.check')}: ${step.target}`);
       
       let resultIcon: string;
       if (step.result === 'found') {
-        resultIcon = '✓ 找到';
+        resultIcon = `✓ ${t('detection.found')}`;
       } else if (step.result === 'error') {
-        resultIcon = `⚠ 执行失败: ${step.message || '未知错误'}`;
+        resultIcon = `⚠ ${t('detection.error', { message: step.message || t('detection.unknownError') })}`;
       } else {
-        resultIcon = '✗ 文件不存在';
+        resultIcon = `✗ ${t('detection.notFound')}`;
       }
       setupLogger.info(`${stepPrefix} ${resultIcon}`);
     });
   });
   
-  setupLogger.info('  └─ 检测完成');
+  setupLogger.info(`  └─ ${t('detection.done')}`);
   
   // Log final status
   if (openclawInstalled) {
-    setupLogger.info(`✅ 环境检查完成: ${openclawVersion || 'OpenClaw 已安装'}`);
+    setupLogger.info(`✅ ${t('detection.completeInstalled', { version: openclawVersion || t('detection.installed') })}`);
   } else {
-    setupLogger.warn('⚠️ 环境检查完成: OpenClaw 未安装');
+    setupLogger.warn(`⚠️ ${t('detection.completeNotInstalled')}`);
   }
 }
 

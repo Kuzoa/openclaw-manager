@@ -1,5 +1,6 @@
 import { Play, Square, RotateCcw, Stethoscope, Skull } from 'lucide-react';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface ServiceStatus {
   running: boolean;
@@ -24,11 +25,12 @@ export function QuickActions({
   onRestart,
   onKillAll,
 }: QuickActionsProps) {
+  const { t } = useTranslation('dashboard');
   const isRunning = status?.running || false;
 
   return (
     <div className="bg-dark-700 rounded-2xl p-6 border border-dark-500">
-      <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+      <h3 className="text-lg font-semibold text-white mb-4">{t('quickActions.title')}</h3>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {/* Start button */}
@@ -60,7 +62,7 @@ export function QuickActions({
               isRunning ? 'text-gray-500' : 'text-gray-300'
             )}
           >
-            Start
+            {t('actions.start')}
           </span>
         </button>
 
@@ -93,7 +95,7 @@ export function QuickActions({
               !isRunning ? 'text-gray-500' : 'text-gray-300'
             )}
           >
-            Stop
+            {t('actions.stop')}
           </span>
         </button>
 
@@ -113,7 +115,7 @@ export function QuickActions({
               className={clsx('text-amber-400', loading && 'animate-spin')}
             />
           </div>
-          <span className="text-sm font-medium text-gray-300">Restart</span>
+          <span className="text-sm font-medium text-gray-300">{t('actions.restart')}</span>
         </button>
 
         {/* Kill All button */}
@@ -129,7 +131,7 @@ export function QuickActions({
           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-rose-500/20">
             <Skull size={20} className="text-rose-400" />
           </div>
-          <span className="text-sm font-medium text-gray-300">Kill All</span>
+          <span className="text-sm font-medium text-gray-300">{t('actions.killAll')}</span>
         </button>
 
         {/* Diagnostics button */}
@@ -144,7 +146,7 @@ export function QuickActions({
           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-purple-500/20">
             <Stethoscope size={20} className="text-purple-400" />
           </div>
-          <span className="text-sm font-medium text-gray-300">Diagnostics</span>
+          <span className="text-sm font-medium text-gray-300">{t('actions.diagnostics')}</span>
         </button>
       </div>
     </div>

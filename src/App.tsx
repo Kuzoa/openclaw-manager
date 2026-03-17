@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
+import { useTranslation, Trans } from 'react-i18next';
 
 import { appLogger } from './lib/logger';
 import { isTauri } from './lib/tauri';
@@ -35,42 +36,44 @@ interface UpdateResult {
   error?: string;
 }
 
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
+// Error Boundary Component
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation('app');
+  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      setHasError(true);
+      setError(event.error);
+      appLogger.error('ErrorBoundary caught error', { error: event.error });
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="p-8 text-center">
+        <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">{t('errorBoundary.title')}</h2>
+        <p className="text-red-200 mb-4">{error?.message}</p>
+        <button
+          onClick={() => setHasError(false)}
+          className="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg text-white text-sm"
+        >
+          {t('errorBoundary.tryAgain')}
+        </button>
+      </div>
+    );
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    appLogger.error('ErrorBoundary caught error', { error, errorInfo });
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 text-center">
-          <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
-          <p className="text-red-200 mb-4">{this.state.error?.message}</p>
-          <button
-            onClick={() => this.setState({ hasError: false })}
-            className="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg text-white text-sm"
-          >
-            Try again
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
+  return <>{children}</>;
 }
 
 function App() {
+  const { t: tApp } = useTranslation('app');
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
 
   // Initialize service status polling (useService manages serviceStatus in store)
@@ -186,7 +189,7 @@ function App() {
             break;
         }
       });
-      setManagerUpdateResult({ success: true, message: 'Update installed successfully! Restarting...' });
+      setManagerUpdateResult({ success: true, message: tApp('managerUpdate.success') });
 
       // Restart app after 2 seconds
       setTimeout(async () => {
@@ -199,7 +202,7 @@ function App() {
       }, 2000);
     } catch (e: any) {
       appLogger.error('Manager update download failed', e);
-      setManagerUpdateResult({ success: false, message: 'Update failed', error: e?.message || String(e) });
+      setManagerUpdateResult({ success: false, message: tApp('managerUpdate.failed'), error: e?.message || String(e) });
       setManagerUpdating(false);
     }
   };
@@ -260,7 +263,6 @@ function App() {
       ai: <AIConfig />,
       channels: <Channels />,
       agents: <Agents />,
-
       logs: <Logs />,
       settings: <Settings onEnvironmentChange={refreshEnvironment} />,
     };
@@ -282,16 +284,19 @@ function App() {
     );
   };
 
-  const LoadingSpinner = () => (
-    <div className="flex h-full items-center justify-center">
-      <div className="relative z-10 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 mb-4 animate-pulse shadow-lg shadow-purple-900/20">
-          <span className="text-3xl">🦞</span>
+  const LoadingSpinner = () => {
+    const { t } = useTranslation('app');
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="relative z-10 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 mb-4 animate-pulse shadow-lg shadow-purple-900/20">
+            <span className="text-3xl">🦞</span>
+          </div>
+          <p className="text-dark-400 font-medium">{t('loading.component')}</p>
         </div>
-        <p className="text-dark-400 font-medium">Loading component...</p>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Main interface
   return (
@@ -313,10 +318,12 @@ function App() {
                 <AlertCircle size={20} className="text-white" />
                 <div>
                   <p className="text-sm font-bold text-white">
-                    Security Warning: Your OpenClaw version ({environment.openclaw_version}) is insecure.
+                    <Trans t={tApp} i18nKey="securityBanner.title" values={{ version: environment.openclaw_version }}>
+                      Security Warning: Your OpenClaw version is insecure.
+                    </Trans>
                   </p>
                   <p className="text-xs text-white/90">
-                    A version &ge; 2026.1.29 is required. Please update immediately.
+                    {tApp('securityBanner.warning')}
                   </p>
                 </div>
               </div>
@@ -324,7 +331,7 @@ function App() {
                 onClick={() => setShowUpdateBanner(true)}
                 className="px-4 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                Update Now
+                {tApp('securityBanner.updateNow')}
               </button>
             </div>
           </motion.div>
@@ -357,10 +364,14 @@ function App() {
                   ) : (
                     <>
                       <p className="text-sm font-medium text-white">
-                        New version available: OpenClaw {updateInfo.latest_version}
+                        <Trans t={tApp} i18nKey="updateBanner.title" values={{ version: updateInfo.latest_version }}>
+                          New version available: OpenClaw {{ version: updateInfo.latest_version }}
+                        </Trans>
                       </p>
                       <p className="text-xs text-white/70">
-                        Current version: {updateInfo.current_version}
+                        <Trans t={tApp} i18nKey="updateBanner.currentVersion" values={{ version: updateInfo.current_version }}>
+                          Current version: {{ version: updateInfo.current_version }}
+                        </Trans>
                       </p>
                     </>
                   )}
@@ -377,12 +388,12 @@ function App() {
                     {updating ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        Updating...
+                        {tApp('updateBanner.updating')}
                       </>
                     ) : (
                       <>
                         <Download size={14} />
-                        Update Now
+                        {tApp('updateBanner.updateNow')}
                       </>
                     )}
                   </button>
@@ -429,7 +440,9 @@ function App() {
                     <>
                       <div className="flex justify-between items-center pr-4">
                         <p className="text-sm font-medium text-white">
-                          New version available: Manager v{managerUpdateVersion}
+                          <Trans t={tApp} i18nKey="managerUpdate.title" values={{ version: managerUpdateVersion }}>
+                            New version available: Manager v{{ version: managerUpdateVersion }}
+                          </Trans>
                         </p>
                         {managerUpdating && (
                           <span className="text-xs text-white/80">{managerUpdateProgress}%</span>
@@ -458,12 +471,12 @@ function App() {
                     {managerUpdating ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        Updating...
+                        {tApp('updateBanner.updating')}
                       </>
                     ) : (
                       <>
                         <Download size={14} />
-                        Update Now
+                        {tApp('updateBanner.updateNow')}
                       </>
                     )}
                   </button>

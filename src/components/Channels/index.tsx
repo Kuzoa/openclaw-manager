@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
+import { useTranslation } from 'react-i18next';
 import {
   MessageCircle,
   Hash,
@@ -381,6 +382,7 @@ interface TestResult {
 }
 
 export function Channels() {
+  const { t } = useTranslation('channels');
   const [channels, setChannels] = useState<ChannelConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -813,7 +815,7 @@ export function Channels() {
           {/* Channel list */}
           <div className="md:col-span-1 space-y-2">
             <h3 className="text-sm font-medium text-gray-400 mb-3 px-1">
-              Message Channels
+              {t('list.title')}
             </h3>
             {channels.map((channel) => {
               const info = channelInfo[channel.channel_type] || {
@@ -857,12 +859,12 @@ export function Channels() {
                       {isConfigured ? (
                         <>
                           <Check size={12} className="text-green-400" />
-                          <span className="text-xs text-green-400">Configured</span>
+                          <span className="text-xs text-green-400">{t('status.active')}</span>
                         </>
                       ) : (
                         <>
                           <X size={12} className="text-gray-500" />
-                          <span className="text-xs text-gray-500">Not Configured</span>
+                          <span className="text-xs text-gray-500">{t('status.inactive')}</span>
                         </>
                       )}
                     </div>
@@ -1618,7 +1620,7 @@ export function Channels() {
                       ) : (
                         <Check size={16} />
                       )}
-                      Save Configuration
+                      {saving ? t('actions.saving') : t('actions.save')}
                     </button>
 
                     {/* Quick test button */}
@@ -1632,7 +1634,7 @@ export function Channels() {
                       ) : (
                         <Play size={16} />
                       )}
-                      Quick Test
+                      {testing ? t('actions.testing') : t('actions.test')}
                     </button>
 
                     {/* Clear config button */}
@@ -1647,22 +1649,22 @@ export function Channels() {
                         ) : (
                           <Trash2 size={16} />
                         )}
-                        Clear Configuration
+                        {clearing ? t('actions.clearing') : t('actions.clear')}
                       </button>
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 rounded-lg border border-red-500/50">
-                        <span className="text-sm text-red-300">Confirm clear?</span>
+                        <span className="text-sm text-red-300">{t('confirmClear')}</span>
                         <button
                           onClick={handleClearConfig}
                           className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
                         >
-                          Confirm
+                          {t('form.confirmDelete', { defaultValue: 'Confirm' })}
                         </button>
                         <button
                           onClick={() => setShowClearConfirm(false)}
                           className="px-2 py-1 text-xs bg-dark-600 text-gray-300 rounded hover:bg-dark-500 transition-colors"
                         >
-                          Cancel
+                          {t('form.cancel', { defaultValue: 'Cancel' })}
                         </button>
                       </div>
                     )}
@@ -1688,7 +1690,7 @@ export function Channels() {
                           'font-medium',
                           testResult.success ? 'text-green-400' : 'text-red-400'
                         )}>
-                          {testResult.success ? 'Test successful' : 'Test failed'}
+                          {testResult.success ? t('test.success', { channel: currentInfo?.name || '' }) : t('test.failed')}
                         </p>
                         <p className="text-sm text-gray-400 mt-1">{testResult.message}</p>
                         {testResult.error && (
@@ -1703,7 +1705,7 @@ export function Channels() {
               </motion.div>
             ) : (
               <div className="h-full flex items-center justify-center text-gray-500">
-                <p>Select a channel on the left to configure</p>
+                <p>{t('empty.description')}</p>
               </div>
             )}
           </div>
