@@ -40,6 +40,7 @@ src-tauri/Cargo.lock
 .adal/
 .agents/
 .agent/
+.arts/
 .augment/rules/
 .claude/
 .cline/
