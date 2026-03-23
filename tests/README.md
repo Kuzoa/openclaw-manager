@@ -19,15 +19,31 @@
 │                                                                         │
 │  后端测试（Rust）                                                        │
 │  ├── 内嵌单元测试：src-tauri/src/**/*_tests.rs（与源码同目录）            │
-│  │   └── 位置：src-tauri/src/utils/cache_tests.rs                       │
+│  │   └── 位置：src-tauri/src/utils/cache/cache_tests.rs                 │
 │  │              src-tauri/src/utils/log_sanitizer_tests.rs              │
+│  │              src-tauri/src/commands/service_tests.rs                 │
+│  │              src-tauri/src/models/detection_tests.rs                 │
 │  │                                                                      │
 │  └── 分离式集成测试：src-tauri/tests/*.rs（独立 tests 目录）              │
-│      └── 位置：src-tauri/tests/config_tests.rs                          │
+│      └── 位置：src-tauri/tests/cache_integration_tests.rs               │
+│                 src-tauri/tests/config_tests.rs                         │
+│                 src-tauri/tests/detection_tests.rs                      │
 │                 src-tauri/tests/service_tests.rs                        │
+│                 src-tauri/tests/performance_tests.rs                    │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+**注意：重复文件名说明**
+
+部分测试文件在不同目录中同名（如 `service_tests.rs`、`detection_tests.rs`），这是 **Rust 惯例**：
+
+| 文件 | 位置 | 访问范围 | 测试类型 |
+|------|------|----------|----------|
+| `service_tests.rs` | `src/commands/` | 私有函数 | 单元测试 |
+| `service_tests.rs` | `tests/` | 公共 API | 集成测试 |
+| `detection_tests.rs` | `src/models/` | 私有函数 | 单元测试 |
+| `detection_tests.rs` | `tests/` | 公共 API | 集成测试 |
 
 **关键设计决策：**
 
@@ -44,16 +60,34 @@ tests/
 ├── frontend/                    # 前端测试
 │   ├── vitest.config.ts         # Vitest 配置文件
 │   ├── setup.ts                 # 测试环境初始化（localStorage/window mock）
+│   ├── tsconfig.json            # TypeScript 配置
 │   └── unit/                    # 单元测试
+│       ├── cache.test.ts        # 缓存模块测试
+│       ├── detection.test.ts    # 检测步骤测试
+│       ├── i18n.test.ts         # 国际化测试
 │       ├── logger.test.ts       # Logger 模块测试
 │       └── store.test.ts        # Zustand Store 测试
 │
-└── backend/                     # 后端测试（预留目录）
+└── README.md                    # 本文档
 
-src-tauri/tests/                 # Rust 集成测试
-├── config_tests.rs              # 配置相关测试
-├── service_tests.rs             # 服务状态测试
-└── integration/                 # 集成测试子目录（预留）
+src-tauri/
+├── src/                         # 源码 + 内嵌单元测试
+│   ├── commands/
+│   │   └── service_tests.rs     # 服务命令单元测试
+│   ├── models/
+│   │   └── detection_tests.rs   # 检测模型单元测试
+│   └── utils/
+│       ├── cache/
+│       │   └── cache_tests.rs   # 缓存单元测试
+│       └── log_sanitizer_tests.rs # 日志脱敏单元测试
+│
+└── tests/                       # Rust 集成测试
+    ├── cache_integration_tests.rs  # 缓存集成测试
+    ├── config_tests.rs             # 配置相关测试
+    ├── detection_tests.rs          # 检测步骤集成测试
+    ├── performance_tests.rs        # 性能测试
+    ├── README_PERFORMANCE_TESTS.md # 性能测试文档
+    └── service_tests.rs            # 服务状态集成测试
 ```
 
 ## 测试框架
@@ -256,28 +290,56 @@ cargo test test_name
 
 #### 单元测试（内嵌）
 
-位于源文件中的 `#[cfg(test)]` 模块：
+位于源文件中的 `#[cfg(test)]` 模块，测试与源码同目录，可访问私有函数：
 
 ```
-src-tauri/src/utils/
-├── cache.rs           # 包含 cache_tests 模块
-├── cache_tests.rs     # 单元测试文件
-├── log_sanitizer.rs   # 包含 log_sanitizer_tests 模块
-└── log_sanitizer_tests.rs
+src-tauri/src/
+├── commands/
+│   └── service_tests.rs      # 服务命令测试
+├── models/
+│   └── detection_tests.rs    # 检测模型测试
+└── utils/
+    ├── cache/
+    │   └── cache_tests.rs    # 缓存模块测试
+    └── log_sanitizer_tests.rs # 日志脱敏测试
 ```
 
 现有单元测试：
-- `cache_tests.rs` - 6 个测试（缓存读写、并发、失效）
-- `log_sanitizer_tests.rs` - 5 个测试（敏感信息脱敏）
-
-#### 集成测试
-
-位于 `src-tauri/tests/` 目录：
 
 | 文件 | 测试数 | 测试内容 |
 |------|--------|----------|
-| config_tests.rs | 10 | 文件工具、环境变量、日志脱敏 |
-| service_tests.rs | 9 | 服务状态序列化、平台检测、端口检查 |
+| `cache_tests.rs` | 6+ | 缓存读写、并发、失效、TTL 验证 |
+| `log_sanitizer_tests.rs` | 5 | 敏感信息脱敏 |
+| `service_tests.rs` | 8 | 服务状态缓存、状态变更检测 |
+| `detection_tests.rs` | 10+ | DetectionResult/DetectionStep 序列化 |
+
+#### 集成测试
+
+位于 `src-tauri/tests/` 目录，只能访问公开 API：
+
+| 文件 | 测试数 | 测试内容 |
+|------|--------|----------|
+| `cache_integration_tests.rs` | 3 | 缓存生命周期、文件持久化 |
+| `config_tests.rs` | 10 | 文件工具、环境变量、日志脱敏 |
+| `detection_tests.rs` | 5 | 检测步骤结构、EnvironmentStatus 字段 |
+| `service_tests.rs` | 9 | 服务状态序列化、平台检测、端口检查 |
+| `performance_tests.rs` | 6 | 缓存 I/O 性能、环境检测性能 |
+
+**性能测试说明**
+
+`performance_tests.rs` 分为两类：
+- **模拟测试**（默认运行）：CI 友好，无需真实环境
+- **真实测试**（需 `--ignored`）：测量实际性能，需要本地环境
+
+```bash
+# 运行模拟性能测试
+cargo test --test performance_tests
+
+# 运行真实性能测试（本地环境）
+cargo test --test performance_tests -- --ignored --test-threads=1
+```
+
+详见 `src-tauri/tests/README_PERFORMANCE_TESTS.md`。
 
 ### 编写新测试
 
@@ -315,14 +377,26 @@ fn test_with_temp_dir() {
 
 ### 当前覆盖
 
+**前端**
+
 | 模块 | 测试类型 | 覆盖程度 |
 |------|----------|----------|
 | `src/lib/logger.ts` | 单元 | 完整 |
 | `src/stores/appStore.ts` | 单元 | 部分（状态管理） |
-| `src-tauri/utils/file.rs` | 集成 | 完整 |
-| `src-tauri/utils/cache.rs` | 单元 | 完整 |
+| `src/i18n/` | 单元 | 基本 |
+| 缓存类型定义 | 单元 | 完整 |
+| 检测步骤类型 | 单元 | 完整 |
+
+**后端**
+
+| 模块 | 测试类型 | 覆盖程度 |
+|------|----------|----------|
+| `src-tauri/utils/cache.rs` | 单元+集成+性能 | 完整 |
 | `src-tauri/utils/log_sanitizer.rs` | 单元+集成 | 完整 |
+| `src-tauri/utils/file.rs` | 集成 | 完整 |
 | `src-tauri/utils/platform.rs` | 集成 | 基本 |
+| `src-tauri/commands/service.rs` | 单元 | 完整 |
+| `src-tauri/models/detection.rs` | 单元 | 完整 |
 | `src-tauri/models/status.rs` | 集成 | 完整 |
 
 ### 暂未覆盖
