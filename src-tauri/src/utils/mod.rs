@@ -5,7 +5,4 @@ pub mod platform;
 pub mod shell;
 
 #[cfg(test)]
-mod cache_tests;
-
-#[cfg(test)]
 mod log_sanitizer_tests;
