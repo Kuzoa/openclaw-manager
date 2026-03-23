@@ -99,10 +99,12 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
     );
 
     // Check Gateway Service (only if OpenClaw is installed)
+    // Use cached gateway_installed to avoid slow openclaw gateway status command
     let gateway_service_installed = if openclaw_installed {
-        info!("[Environment Check] Checking Gateway Service...");
-        let installed = tokio::task::spawn_blocking(|| check_gateway_installed())
+        info!("[Environment Check] Checking Gateway Service (using cache)...");
+        let installed = tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_gateway_installed())
             .await
+            .unwrap_or(None)
             .unwrap_or(false);
         info!(
             "[Environment Check] Gateway Service: installed={}",

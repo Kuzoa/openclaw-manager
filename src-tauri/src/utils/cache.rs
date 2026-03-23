@@ -1,13 +1,40 @@
 use crate::models::{DetectionResult, DetectionStep};
 use log::{debug, info, warn};
-use std::sync::RwLock;
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::{OnceLock, RwLock};
 
 use super::platform;
 use super::shell;
 
+// TTL constants for cache entries (in seconds)
+const TTL_STABLE_PATHS: u64 = 604800; // 7 days
+const TTL_OPENCLAW_PATH: u64 = 86400; // 24 hours
+const CACHE_FILE_VERSION: u32 = 1;
+
+/// Single cache entry with metadata
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CacheEntry {
+    pub value: String,
+    pub cached_at: String, // ISO 8601 timestamp
+    pub ttl_seconds: u64,
+}
+
+/// Persistent cache file structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnvironmentCacheFile {
+    pub version: u32,
+    pub cache: HashMap<String, CacheEntry>,
+}
+
 /// Global environment cache instance
 /// Uses `once_cell::sync::Lazy` for thread-safe lazy initialization
-pub static ENVIRONMENT_CACHE: EnvironmentCache = EnvironmentCache::new();
+pub static ENVIRONMENT_CACHE: Lazy<EnvironmentCache> = Lazy::new(EnvironmentCache::new);
+
+/// One-time initialization guard for cache directory
+static CACHE_DIR_SET: OnceLock<()> = OnceLock::new();
 
 /// A cached value that distinguishes between "not yet initialized" and "initialized to None"
 ///
@@ -53,11 +80,19 @@ pub struct EnvironmentCache {
     pub(crate) is_secure: CachedValue<bool>,
     /// Detection steps for OpenClaw path detection
     pub(crate) detection_steps: CachedValue<Vec<DetectionStep>>,
+    /// Whether Gateway Service is installed (cached to avoid slow openclaw gateway status)
+    pub(crate) gateway_installed: CachedValue<bool>,
+    /// Cache directory path for persistent storage
+    cache_dir: RwLock<Option<PathBuf>>,
+    /// Cache hit flags for detection_steps generation
+    /// key: "npm_prefix" or "openclaw_path"
+    /// value: true means cache hit from file, false means miss or invalid
+    cache_hit_flags: RwLock<HashMap<String, bool>>,
 }
 
 impl EnvironmentCache {
     /// Create a new empty cache
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             npm_prefix: RwLock::new(None),
             openclaw_path: RwLock::new(None),
@@ -66,6 +101,9 @@ impl EnvironmentCache {
             git_version: RwLock::new(None),
             is_secure: RwLock::new(None),
             detection_steps: RwLock::new(None),
+            gateway_installed: RwLock::new(None),
+            cache_dir: RwLock::new(None),
+            cache_hit_flags: RwLock::new(HashMap::new()),
         }
     }
 
@@ -73,6 +111,7 @@ impl EnvironmentCache {
     ///
     /// Executes `npm config get prefix` on first call and caches the result.
     /// Uses double-checked locking to prevent race conditions.
+    /// Now checks file cache first before executing npm command.
     pub fn get_npm_prefix(&self) -> Option<String> {
         // First check with read lock (fast path)
         {
@@ -88,12 +127,34 @@ impl EnvironmentCache {
             return guard.as_ref().unwrap().clone();
         }
 
+        // Try to load from file cache first
+        if let Some(cache_data) = self.load_cache_from_file() {
+            if let Some(cached_path) = self.get_cached_path(&cache_data, "npm_prefix") {
+                info!("[Cache] npm_prefix: using cached value");
+                // Mark as cache hit
+                {
+                    let mut flags = self.cache_hit_flags.write().unwrap();
+                    flags.insert("npm_prefix".to_string(), true);
+                }
+                *guard = Some(Some(cached_path.clone()));
+                return Some(cached_path);
+            }
+        }
+
         // Cache miss - execute npm command
         info!("[Cache] npm_prefix: cache miss, executing npm config get prefix");
         let result = self.fetch_npm_prefix_internal();
 
         // Write to cache (wrap in Some to mark as initialized)
         *guard = Some(result.clone());
+
+        // IMPORTANT: Drop the write lock before calling save_paths_to_file()
+        // to avoid deadlock (save_paths_to_file() needs read lock on npm_prefix)
+        drop(guard);
+
+        // Save to file cache
+        self.save_paths_to_file();
+
         result
     }
 
@@ -128,6 +189,7 @@ impl EnvironmentCache {
     /// Uses cached npm_prefix if available, falls back to the existing
     /// Phase 2/3 detection logic in shell::get_openclaw_path_internal.
     /// Uses double-checked locking to prevent race conditions.
+    /// Now checks file cache first before executing detection.
     pub fn get_openclaw_path(&self) -> Option<String> {
         // First check with read lock (fast path)
         {
@@ -137,10 +199,40 @@ impl EnvironmentCache {
             }
         }
 
+        // IMPORTANT: Ensure npm_prefix is initialized BEFORE acquiring openclaw_path write lock
+        // to avoid deadlock (detect_openclaw_path_with_steps_internal reads npm_prefix)
+        // This also helps populate the cache for faster detection
+        let _ = self.get_npm_prefix();
+
         // Acquire write lock and check again (prevents race condition)
         let mut guard = self.openclaw_path.write().unwrap();
         if guard.is_some() {
             return guard.as_ref().unwrap().clone();
+        }
+
+        // Try to load from file cache first
+        if let Some(cache_data) = self.load_cache_from_file() {
+            if let Some(cached_path) = self.get_cached_path(&cache_data, "openclaw_path") {
+                info!("[Cache] openclaw_path: using cached value");
+                // Mark as cache hit
+                {
+                    let mut flags = self.cache_hit_flags.write().unwrap();
+                    flags.insert("openclaw_path".to_string(), true);
+                }
+                *guard = Some(Some(cached_path.clone()));
+                // Set simplified detection steps for cache hit
+                {
+                    let mut steps_guard = self.detection_steps.write().unwrap();
+                    *steps_guard = Some(Some(vec![DetectionStep {
+                        phase: "Cache: Using cached path".to_string(),
+                        action: "Loading from cache".to_string(),
+                        target: cached_path.clone(),
+                        result: DetectionResult::Found,
+                        message: Some("Path loaded from cache".to_string()),
+                    }]));
+                }
+                return Some(cached_path);
+            }
         }
 
         // Cache miss - detect path with steps
@@ -149,13 +241,20 @@ impl EnvironmentCache {
 
         // Write to cache (wrap in Some to mark as initialized)
         *guard = Some(result.clone());
-        
+
         // Also cache the detection steps
         {
             let mut steps_guard = self.detection_steps.write().unwrap();
             *steps_guard = Some(Some(steps));
         }
-        
+
+        // IMPORTANT: Drop the write lock before calling save_paths_to_file()
+        // to avoid deadlock (save_paths_to_file() needs read lock on openclaw_path)
+        drop(guard);
+
+        // Save to file cache
+        self.save_paths_to_file();
+
         result
     }
 
@@ -180,13 +279,113 @@ impl EnvironmentCache {
         guard.as_ref().unwrap().clone().unwrap_or_default()
     }
 
+    /// Get Gateway Service installed status with lazy initialization and caching
+    ///
+    /// This is cached to avoid the slow `openclaw gateway status` command (~7s).
+    /// The result is persisted to the cache file with 24-hour TTL.
+    pub fn get_gateway_installed(&self) -> Option<bool> {
+        // First check with read lock (fast path)
+        {
+            let guard = self.gateway_installed.read().unwrap();
+            if guard.is_some() {
+                return guard.as_ref().unwrap().clone();
+            }
+        }
+
+        // Acquire write lock and check again (prevents race condition)
+        let mut guard = self.gateway_installed.write().unwrap();
+        if guard.is_some() {
+            return guard.as_ref().unwrap().clone();
+        }
+
+        // Try to load from file cache first
+        if let Some(cache_data) = self.load_cache_from_file() {
+            if let Some(entry) = cache_data.cache.get("gateway_installed") {
+                if self.is_entry_valid(entry) {
+                    let value = entry.value == "true";
+                    info!("[Cache] Cache hit for 'gateway_installed': {}", entry.value);
+                    *guard = Some(Some(value));
+                    return Some(value);
+                }
+            }
+        }
+
+        // Cache miss - need to detect
+        info!("[Cache] gateway_installed: cache miss, detecting...");
+        
+        // Execute the slow command
+        let result = match shell::run_openclaw(&["gateway", "status"]) {
+            Ok(output) => {
+                let lower = output.to_lowercase();
+                if lower.contains("not installed") || lower.contains("not found") {
+                    false
+                } else {
+                    true
+                }
+            }
+            Err(e) => {
+                let lower = e.to_lowercase();
+                if lower.contains("not installed") || lower.contains("not found") {
+                    false
+                } else {
+                    debug!("[Cache] Gateway status check failed: {}", e);
+                    false
+                }
+            }
+        };
+        
+        info!("[Cache] gateway_installed: {}", result);
+
+        // Store in memory cache
+        *guard = Some(Some(result));
+        
+        // Drop the write lock before saving to file
+        drop(guard);
+
+        // Save to file cache
+        self.save_gateway_installed_to_file(result);
+
+        Some(result)
+    }
+
+    /// Save gateway_installed to cache file
+    fn save_gateway_installed_to_file(&self, value: bool) {
+        let mut cache_data = EnvironmentCacheFile {
+            version: CACHE_FILE_VERSION,
+            cache: HashMap::new(),
+        };
+
+        // Load existing cache to preserve other entries
+        if let Some(existing) = self.load_cache_from_file() {
+            cache_data = existing;
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+        cache_data.cache.insert(
+            "gateway_installed".to_string(),
+            CacheEntry {
+                value: value.to_string(),
+                cached_at: now,
+                ttl_seconds: TTL_OPENCLAW_PATH, // 24 hours
+            },
+        );
+
+        self.save_cache_to_file(&cache_data);
+    }
+
     /// Internal function to detect OpenClaw path with detailed steps
     /// Returns (path, detection_steps)
     fn detect_openclaw_path_with_steps_internal(&self) -> (Option<String>, Vec<DetectionStep>) {
         let mut steps: Vec<DetectionStep> = Vec::new();
 
         // Phase 1: Use cached npm prefix
-        let npm_prefix_result = self.get_npm_prefix();
+        // IMPORTANT: We read the npm_prefix directly from the cache without calling get_npm_prefix()
+        // to avoid potential deadlock (get_npm_prefix() may call save_paths_to_file() which needs openclaw_path read lock)
+        let npm_prefix_result = {
+            let guard = self.npm_prefix.read().unwrap();
+            guard.as_ref().and_then(|v| v.clone())
+        };
+        
         match &npm_prefix_result {
             Some(prefix) => {
                 let openclaw_path = if platform::is_windows() {
@@ -319,6 +518,7 @@ impl EnvironmentCache {
     /// First checks if OpenClaw is installed (via get_openclaw_path).
     /// If not installed, returns None immediately without executing any command.
     /// Uses double-checked locking to prevent race conditions.
+    /// Implements retry logic: if version detection fails, invalidates cache and retries once.
     pub fn get_openclaw_version(&self) -> Option<String> {
         // First check with read lock (fast path)
         {
@@ -328,6 +528,10 @@ impl EnvironmentCache {
             }
         }
 
+        // IMPORTANT: Get openclaw_path BEFORE acquiring openclaw_version write lock
+        // to avoid deadlock (get_openclaw_path() needs its own locks)
+        let openclaw_path = self.get_openclaw_path();
+
         // Acquire write lock and check again (prevents race condition)
         let mut guard = self.openclaw_version.write().unwrap();
         if guard.is_some() {
@@ -335,7 +539,6 @@ impl EnvironmentCache {
         }
 
         // First check if OpenClaw is installed (uses cached path)
-        let openclaw_path = self.get_openclaw_path();
         if openclaw_path.is_none() {
             info!("[Cache] openclaw_version: OpenClaw not installed, skipping version check");
             // Cache the None result to avoid repeated checks
@@ -348,6 +551,45 @@ impl EnvironmentCache {
         let result = shell::run_openclaw(&["--version"])
             .ok()
             .map(|v| v.trim().to_string());
+
+        // If version detection failed, try invalidating cache and retrying once
+        if result.is_none() {
+            warn!("[Cache] openclaw_version: detection failed, invalidating cache and retrying");
+            
+            // IMPORTANT: Drop the write lock before calling invalidate_entry and get_openclaw_path
+            drop(guard);
+            
+            self.invalidate_entry("openclaw_path");
+
+            // Re-get path (may trigger full detection)
+            let new_path = self.get_openclaw_path();
+            
+            // Re-acquire write lock
+            let mut guard = self.openclaw_version.write().unwrap();
+            
+            if new_path.is_some() && new_path != openclaw_path {
+                // Path changed, retry version detection
+                info!("[Cache] openclaw_version: path changed, retrying version detection");
+                let retry_result = shell::run_openclaw(&["--version"])
+                    .ok()
+                    .map(|v| v.trim().to_string());
+
+                // Write to cache (wrap in Some to mark as initialized)
+                *guard = Some(retry_result.clone());
+
+                if let Some(ref v) = retry_result {
+                    info!("[Cache] openclaw_version: '{}' (after retry)", v);
+                } else {
+                    warn!("[Cache] openclaw_version: still failed after retry");
+                }
+
+                return retry_result;
+            }
+            
+            // Write the failed result
+            *guard = Some(None);
+            return None;
+        }
 
         // Write to cache (wrap in Some to mark as initialized)
         *guard = Some(result.clone());
@@ -511,6 +753,11 @@ impl EnvironmentCache {
             }
         }
 
+        // IMPORTANT: Get openclaw_version BEFORE acquiring is_secure write lock
+        // to avoid deadlock (get_openclaw_version() needs its own locks)
+        info!("[Cache] is_secure: cache miss, checking version...");
+        let version = self.get_openclaw_version();
+
         // Acquire write lock and check again (prevents race condition)
         let mut guard = self.is_secure.write().unwrap();
         if guard.is_some() {
@@ -518,8 +765,6 @@ impl EnvironmentCache {
         }
 
         // Cache miss - check version
-        info!("[Cache] is_secure: cache miss, checking version...");
-        let version = self.get_openclaw_version();
         let result = version.as_ref().map(|v| {
             // Basic string comparison assuming YYYY.M.D format
             let is_secure = v.as_str() >= "2026.1.29";
@@ -574,8 +819,310 @@ impl EnvironmentCache {
             let mut guard = self.detection_steps.write().unwrap();
             *guard = None;
         }
+        {
+            let mut guard = self.gateway_installed.write().unwrap();
+            *guard = None;
+        }
+        // Clear cache hit flags
+        {
+            let mut guard = self.cache_hit_flags.write().unwrap();
+            guard.clear();
+        }
+
+        // Delete cache file if it exists
+        if let Some(cache_file) = self.get_cache_file_path() {
+            if cache_file.exists() {
+                if let Err(e) = std::fs::remove_file(&cache_file) {
+                    warn!("[Cache] Failed to delete cache file: {}", e);
+                } else {
+                    info!("[Cache] Cache file deleted: {:?}", cache_file);
+                }
+            }
+        }
 
         info!("[Cache] Cache invalidation complete");
+    }
+
+    /// Invalidate a specific cache entry
+    ///
+    /// This is used when a specific path becomes invalid (e.g., version detection fails)
+    /// but other cached paths are still valid.
+    pub fn invalidate_entry(&self, key: &str) {
+        info!("[Cache] Invalidating cache entry: {}", key);
+
+        // Clear specific memory cache field
+        match key {
+            "npm_prefix" => {
+                let mut guard = self.npm_prefix.write().unwrap();
+                *guard = None;
+            }
+            "openclaw_path" => {
+                let mut guard = self.openclaw_path.write().unwrap();
+                *guard = None;
+            }
+            _ => {
+                warn!("[Cache] Unknown cache key: {}", key);
+                return;
+            }
+        }
+
+        // Clear cache hit flag
+        {
+            let mut flags = self.cache_hit_flags.write().unwrap();
+            flags.remove(key);
+        }
+
+        // Remove entry from file cache
+        if let Some(mut cache_data) = self.load_cache_from_file() {
+            if cache_data.cache.remove(key).is_some() {
+                info!("[Cache] Removed '{}' from file cache", key);
+                self.save_cache_to_file(&cache_data);
+            }
+        }
+
+        info!("[Cache] Cache entry '{}' invalidated", key);
+    }
+
+    /// Set cache directory path (can only be called once)
+    ///
+    /// This should be called during application setup to initialize
+    /// the persistent cache storage location.
+    pub fn set_cache_dir(&self, path: PathBuf) {
+        if CACHE_DIR_SET.set(()).is_ok() {
+            let mut guard = self.cache_dir.write().unwrap();
+            *guard = Some(path);
+            info!("[Cache] Cache directory set: {:?}", *guard);
+        } else {
+            warn!("[Cache] Cache directory already set, ignoring duplicate call");
+        }
+    }
+
+    /// Set cache directory for testing purposes (bypasses OnceLock)
+    #[cfg(test)]
+    pub fn set_cache_dir_for_test(&self, path: PathBuf) {
+        let mut guard = self.cache_dir.write().unwrap();
+        *guard = Some(path);
+    }
+
+    /// Get cache file path (returns None if cache_dir not set)
+    fn get_cache_file_path(&self) -> Option<PathBuf> {
+        let guard = self.cache_dir.read().unwrap();
+        guard.as_ref().map(|dir| dir.join("environment.json"))
+    }
+
+    /// Ensure cache directory exists
+    ///
+    /// Returns true if directory exists or was created successfully,
+    /// false if creation failed (will use memory-only mode)
+    fn ensure_cache_dir(&self) -> bool {
+        let guard = self.cache_dir.read().unwrap();
+        if let Some(dir) = guard.as_ref() {
+            if dir.exists() {
+                return true;
+            }
+            if let Err(e) = std::fs::create_dir_all(dir) {
+                warn!(
+                    "[Cache] Failed to create cache directory: {}, using memory-only mode",
+                    e
+                );
+                return false;
+            }
+            return true;
+        }
+        false
+    }
+
+    /// Save cache to file using atomic write (temp file + rename)
+    ///
+    /// This function writes to a temporary file first, then renames it
+    /// to ensure atomic operation on most platforms.
+    pub fn save_cache_to_file(&self, cache_data: &EnvironmentCacheFile) {
+        if !self.ensure_cache_dir() {
+            debug!("[Cache] Cache directory not available, skipping file save");
+            return;
+        }
+
+        let cache_file = match self.get_cache_file_path() {
+            Some(path) => path,
+            None => {
+                debug!("[Cache] No cache file path, skipping file save");
+                return;
+            }
+        };
+
+        let temp_file = cache_file.with_extension("json.tmp");
+
+        // Write to temp file
+        let json_str = match serde_json::to_string_pretty(cache_data) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("[Cache] Failed to serialize cache: {}", e);
+                return;
+            }
+        };
+
+        if let Err(e) = std::fs::write(&temp_file, json_str) {
+            warn!("[Cache] Failed to write temp cache file: {}", e);
+            return;
+        }
+
+        // Rename temp file to final file (atomic on most platforms)
+        if let Err(e) = std::fs::rename(&temp_file, &cache_file) {
+            warn!("[Cache] Failed to rename cache file: {}", e);
+            // Clean up temp file
+            let _ = std::fs::remove_file(&temp_file);
+        } else {
+            info!("[Cache] Cache saved to: {:?}", cache_file);
+        }
+    }
+
+    /// Load cache from file
+    ///
+    /// Returns None if:
+    /// - Cache file doesn't exist (first run)
+    /// - JSON parsing fails (corrupted cache)
+    /// - Version mismatch (old format)
+    pub fn load_cache_from_file(&self) -> Option<EnvironmentCacheFile> {
+        let cache_file = self.get_cache_file_path()?;
+
+        if !cache_file.exists() {
+            debug!("[Cache] Cache file does not exist: {:?}", cache_file);
+            return None;
+        }
+
+        let content = match std::fs::read_to_string(&cache_file) {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("[Cache] Failed to read cache file: {}", e);
+                // Delete corrupted file
+                let _ = std::fs::remove_file(&cache_file);
+                return None;
+            }
+        };
+
+        let cache_data: EnvironmentCacheFile = match serde_json::from_str(&content) {
+            Ok(data) => data,
+            Err(e) => {
+                warn!("[Cache] Failed to parse cache file: {}", e);
+                // Delete corrupted file
+                let _ = std::fs::remove_file(&cache_file);
+                return None;
+            }
+        };
+
+        // Check version
+        if cache_data.version != CACHE_FILE_VERSION {
+            warn!(
+                "[Cache] Unsupported cache version: {}, ignoring cache",
+                cache_data.version
+            );
+            // Delete old version file
+            let _ = std::fs::remove_file(&cache_file);
+            return None;
+        }
+
+        info!("[Cache] Cache loaded from: {:?}", cache_file);
+        Some(cache_data)
+    }
+
+    /// Check if a cache entry is valid (TTL not expired)
+    pub(crate) fn is_entry_valid(&self, entry: &CacheEntry) -> bool {
+        // Parse cached_at timestamp
+        let cached_at = match chrono::DateTime::parse_from_rfc3339(&entry.cached_at) {
+            Ok(dt) => dt.with_timezone(&chrono::Utc),
+            Err(e) => {
+                warn!("[Cache] Failed to parse cached_at timestamp: {}", e);
+                return false;
+            }
+        };
+
+        let now = chrono::Utc::now();
+        let elapsed = now.signed_duration_since(cached_at);
+
+        // Check if elapsed time exceeds TTL
+        elapsed.num_seconds() < entry.ttl_seconds as i64
+    }
+
+    /// Check if a path exists in the filesystem
+    pub(crate) fn is_path_exists(&self, path: &str) -> bool {
+        std::path::Path::new(path).exists()
+    }
+
+    /// Get cached path with validation (TTL + path existence)
+    ///
+    /// Returns None if:
+    /// - Entry not in cache
+    /// - TTL expired
+    /// - Path doesn't exist in filesystem
+    pub(crate) fn get_cached_path(&self, cache_data: &EnvironmentCacheFile, key: &str) -> Option<String> {
+        let entry = cache_data.cache.get(key)?;
+
+        // Check TTL
+        if !self.is_entry_valid(entry) {
+            info!("[Cache] Cache entry '{}' TTL expired", key);
+            return None;
+        }
+
+        // Check path existence
+        if !self.is_path_exists(&entry.value) {
+            info!(
+                "[Cache] Cached path '{}' no longer exists: {}",
+                key, entry.value
+            );
+            return None;
+        }
+
+        info!("[Cache] Cache hit for '{}': {}", key, entry.value);
+        Some(entry.value.clone())
+    }
+
+    /// Save current paths to cache file
+    ///
+    /// This should be called after successfully detecting paths.
+    fn save_paths_to_file(&self) {
+        let mut cache_data = EnvironmentCacheFile {
+            version: CACHE_FILE_VERSION,
+            cache: HashMap::new(),
+        };
+
+        // Load existing cache to preserve other entries
+        if let Some(existing) = self.load_cache_from_file() {
+            cache_data = existing;
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Add npm_prefix if available
+        {
+            let guard = self.npm_prefix.read().unwrap();
+            if let Some(Some(value)) = guard.as_ref() {
+                cache_data.cache.insert(
+                    "npm_prefix".to_string(),
+                    CacheEntry {
+                        value: value.clone(),
+                        cached_at: now.clone(),
+                        ttl_seconds: TTL_STABLE_PATHS,
+                    },
+                );
+            }
+        }
+
+        // Add openclaw_path if available
+        {
+            let guard = self.openclaw_path.read().unwrap();
+            if let Some(Some(value)) = guard.as_ref() {
+                cache_data.cache.insert(
+                    "openclaw_path".to_string(),
+                    CacheEntry {
+                        value: value.clone(),
+                        cached_at: now.clone(),
+                        ttl_seconds: TTL_OPENCLAW_PATH,
+                    },
+                );
+            }
+        }
+
+        self.save_cache_to_file(&cache_data);
     }
 }
 
@@ -776,3 +1323,6 @@ fn get_windows_node_paths() -> Vec<String> {
 
     paths
 }
+
+#[cfg(test)]
+mod cache_tests;

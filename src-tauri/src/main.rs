@@ -5,8 +5,10 @@
 )]
 
 use openclaw_manager::commands::{config, diagnostics, installer, logs, process, service, skills};
+use openclaw_manager::utils::cache::ENVIRONMENT_CACHE;
 use openclaw_manager::utils::log_sanitizer;
 use std::io::Write;
+use tauri::Manager;
 
 fn main() {
     // Initialize logging - show info level logs by default
@@ -30,6 +32,32 @@ fn main() {
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
+
+            // Initialize cache directory for persistent storage
+            let cache_dir = app
+                .path()
+                .app_data_dir()
+                .ok()
+                .map(|dir: std::path::PathBuf| dir.join("cache"));
+
+            if let Some(dir) = &cache_dir {
+                if let Err(e) = std::fs::create_dir_all(dir) {
+                    log::warn!(
+                        "[Cache] Failed to create cache directory: {}, using memory-only mode",
+                        e
+                    );
+                }
+            } else {
+                log::warn!("[Cache] Failed to get app data directory, using memory-only mode");
+            }
+
+            // Only set cache_dir if directory exists (creation succeeded)
+            if let Some(dir) = cache_dir {
+                if dir.exists() {
+                    ENVIRONMENT_CACHE.set_cache_dir(dir);
+                }
+            }
+
             Ok(())
         })
         .plugin(tauri_plugin_shell::init())
