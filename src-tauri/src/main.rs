@@ -84,12 +84,6 @@ fn main() {
             // Configuration management
             config::get_config,
             config::save_config,
-            config::get_tools_profile,
-            config::save_tools_profile,
-            config::get_pdf_config,
-            config::save_pdf_config,
-            config::get_memory_config,
-            config::save_memory_config,
             config::get_env_value,
             config::save_env_value,
             config::get_ai_providers,
@@ -155,7 +149,7 @@ fn main() {
             config::get_openclaw_home_dir,
             config::get_agents_config,
             config::save_agent,
-            config::save_subagent_defaults,
+            config::get_subagent_defaults,
             config::delete_agent,
             config::save_agent_binding,
             config::delete_agent_binding,
@@ -170,24 +164,22 @@ fn main() {
             config::get_heartbeat_config,
             config::save_heartbeat_config,
             config::get_compaction_config,
-            config::save_compaction_config,
             // Workspace & Personality
             config::get_workspace_config,
-            config::save_workspace_config,
             config::get_personality_file,
             config::save_personality_file,
             // Browser Control
             config::get_browser_config,
-            config::save_browser_config,
             // Web Search
             config::get_web_config,
-            config::save_web_config,
             // Gateway Configuration
             config::get_gateway_config,
-            config::save_gateway_config,
             // Configuration Management
             config::export_config,
             config::import_config,
+            // Unified Settings API
+            config::get_all_settings,
+            config::save_all_settings,
         ])
         .run(tauri::generate_context!())
         .expect("Error occurred while running Tauri application");

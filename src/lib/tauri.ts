@@ -173,6 +173,66 @@ export interface MemoryConfig {
   provider: string | null;
 }
 
+// Unified Settings API - AllSettings interface
+export interface BrowserSettings {
+  enabled: boolean;
+  color: string | null;
+}
+
+export interface WebSettings {
+  brave_api_key: string | null;
+}
+
+export interface CompactionSettings {
+  enabled: boolean;
+  threshold: number | null;
+  context_pruning: boolean;
+  max_context_messages: number | null;
+}
+
+export interface WorkspaceSettings {
+  workspace: string | null;
+  timezone: string | null;
+  time_format: string | null;
+  skip_bootstrap: boolean;
+  bootstrap_max_chars: number | null;
+}
+
+export interface GatewaySettings {
+  port: number;
+  log_level: string;
+}
+
+export interface SubagentDefaultsSettings {
+  max_spawn_depth: number | null;
+  max_children_per_agent: number | null;
+  max_concurrent: number | null;
+  attachments_enabled: boolean | null;
+  attachments_max_total_bytes: number | null;
+}
+
+export interface PdfSettings {
+  max_pages: number | null;
+  max_bytes_mb: number | null;
+}
+
+export interface MemorySettings {
+  provider: string | null;
+}
+
+export interface AllSettings {
+  browser: BrowserSettings;
+  web: WebSettings;
+  compaction: CompactionSettings;
+  workspace: WorkspaceSettings;
+  gateway: GatewaySettings;
+  subagent_defaults: SubagentDefaultsSettings;
+  tools_profile: string;
+  pdf: PdfSettings;
+  memory: MemorySettings;
+  language: string | null;
+}
+
 // API wrapper (with logging)
 export const api = {
   // Service management
@@ -198,12 +258,6 @@ export const api = {
     invokeWithLog<string>('save_env_value', { key, value }),
 
   // 2026.3.2 Features
-  getToolsProfile: () => invokeWithLog<string>('get_tools_profile'),
-  saveToolsProfile: (profile: string) => invokeWithLog<string>('save_tools_profile', { profile }),
-  getPdfConfig: () => invokeWithLog<PdfConfig>('get_pdf_config'),
-  savePdfConfig: (pdfConfig: PdfConfig) => invokeWithLog<string>('save_pdf_config', { pdfConfig }),
-  getMemoryConfig: () => invokeWithLog<MemoryConfig>('get_memory_config'),
-  saveMemoryConfig: (memoryConfig: MemoryConfig) => invokeWithLog<string>('save_memory_config', { memoryConfig }),
   validateOpenclawConfig: (configJson: string) => invokeWithLog<string>('validate_openclaw_config', { configJson }),
 
   // AI Provider (legacy compatibility)
@@ -274,4 +328,9 @@ export const api = {
   testAIConnection: () => invokeWithLog<AITestResult>('test_ai_connection'),
   testChannel: (channelType: string) =>
     invokeWithLog<unknown>('test_channel', { channelType }),
+
+  // Unified Settings API (atomic operations)
+  getAllSettings: () => invokeWithLog<AllSettings>('get_all_settings'),
+  saveAllSettings: (settings: AllSettings) =>
+    invokeWithLog<string>('save_all_settings', { settings }),
 };

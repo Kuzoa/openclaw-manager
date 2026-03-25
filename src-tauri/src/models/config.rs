@@ -333,3 +333,330 @@ pub struct EnvConfig {
     pub key: String,
     pub value: String,
 }
+
+// ============ AllSettings - Unified settings for Settings page ============
+
+/// Browser configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrowserSettings {
+    #[serde(default = "default_browser_enabled")]
+    pub enabled: bool,
+    #[serde(default)]
+    pub color: Option<String>,
+}
+
+fn default_browser_enabled() -> bool {
+    true
+}
+
+impl Default for BrowserSettings {
+    fn default() -> Self {
+        Self {
+            enabled: default_browser_enabled(),
+            color: None,
+        }
+    }
+}
+
+/// Web search configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WebSettings {
+    #[serde(default)]
+    pub brave_api_key: Option<String>,
+}
+
+/// Compaction configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CompactionSettings {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub threshold: Option<u32>,
+    #[serde(default)]
+    pub context_pruning: bool,
+    #[serde(default)]
+    pub max_context_messages: Option<u32>,
+}
+
+/// Workspace configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceSettings {
+    #[serde(default)]
+    pub workspace: Option<String>,
+    #[serde(default = "default_timezone")]
+    pub timezone: Option<String>,
+    #[serde(default)]
+    pub time_format: Option<String>,
+    #[serde(default)]
+    pub skip_bootstrap: bool,
+    #[serde(default)]
+    pub bootstrap_max_chars: Option<u32>,
+}
+
+fn default_timezone() -> Option<String> {
+    Some("Asia/Shanghai".to_string())
+}
+
+impl Default for WorkspaceSettings {
+    fn default() -> Self {
+        Self {
+            workspace: None,
+            timezone: default_timezone(),
+            time_format: None,
+            skip_bootstrap: false,
+            bootstrap_max_chars: None,
+        }
+    }
+}
+
+/// Gateway configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewaySettings {
+    #[serde(default = "default_gateway_port")]
+    pub port: u16,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+}
+
+fn default_gateway_port() -> u16 {
+    3000
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+impl Default for GatewaySettings {
+    fn default() -> Self {
+        Self {
+            port: default_gateway_port(),
+            log_level: default_log_level(),
+        }
+    }
+}
+
+/// Subagent defaults for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SubagentDefaultsSettings {
+    #[serde(default)]
+    pub max_spawn_depth: Option<u32>,
+    #[serde(default)]
+    pub max_children_per_agent: Option<u32>,
+    #[serde(default)]
+    pub max_concurrent: Option<u32>,
+    #[serde(default)]
+    pub attachments_enabled: Option<bool>,
+    #[serde(default)]
+    pub attachments_max_total_bytes: Option<u64>,
+}
+
+/// PDF configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PdfSettings {
+    #[serde(default)]
+    pub max_pages: Option<u64>,
+    #[serde(default)]
+    pub max_bytes_mb: Option<f64>,
+}
+
+/// Memory configuration for Settings page
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MemorySettings {
+    #[serde(default)]
+    pub provider: Option<String>,
+}
+
+/// Unified settings for Settings page - combines all configuration sections
+/// This struct is used for atomic read/write operations to avoid race conditions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AllSettings {
+    pub browser: BrowserSettings,
+    pub web: WebSettings,
+    pub compaction: CompactionSettings,
+    pub workspace: WorkspaceSettings,
+    pub gateway: GatewaySettings,
+    pub subagent_defaults: SubagentDefaultsSettings,
+    #[serde(default = "default_tools_profile")]
+    pub tools_profile: String,
+    pub pdf: PdfSettings,
+    pub memory: MemorySettings,
+    #[serde(default)]
+    pub language: Option<String>,
+}
+
+fn default_tools_profile() -> String {
+    "messaging".to_string()
+}
+
+impl Default for AllSettings {
+    fn default() -> Self {
+        Self {
+            browser: BrowserSettings::default(),
+            web: WebSettings::default(),
+            compaction: CompactionSettings::default(),
+            workspace: WorkspaceSettings::default(),
+            gateway: GatewaySettings::default(),
+            subagent_defaults: SubagentDefaultsSettings::default(),
+            tools_profile: default_tools_profile(),
+            pdf: PdfSettings::default(),
+            memory: MemorySettings::default(),
+            language: None,
+        }
+    }
+}
+
+impl From<serde_json::Value> for AllSettings {
+    fn from(config: serde_json::Value) -> Self {
+        // Browser settings
+        let browser = BrowserSettings {
+            enabled: config
+                .pointer("/meta/gui/browser/enabled")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true),
+            color: config
+                .pointer("/meta/gui/browser/color")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+        };
+
+        // Web settings
+        let web = WebSettings {
+            brave_api_key: config
+                .pointer("/web/braveApiKey")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+        };
+
+        // Compaction settings
+        let compaction_val = config.pointer("/agents/defaults/compaction");
+        let pruning_val = config.pointer("/agents/defaults/contextPruning");
+
+        let compaction = CompactionSettings {
+            enabled: compaction_val
+                .map(|v| v.as_bool().unwrap_or(true))
+                .unwrap_or(false),
+            threshold: compaction_val
+                .and_then(|v| v.get("threshold"))
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            // contextPruning can be: true/false, or an object like {"maxMessages": 50}
+            context_pruning: pruning_val
+                .map(|v| {
+                    if v.is_boolean() {
+                        v.as_bool().unwrap_or(false)
+                    } else if v.is_object() {
+                        true // Object means enabled with settings
+                    } else {
+                        false
+                    }
+                })
+                .unwrap_or(false),
+            max_context_messages: pruning_val
+                .and_then(|v| v.get("maxMessages"))
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+        };
+
+        // Workspace settings
+        let workspace = WorkspaceSettings {
+            workspace: config
+                .pointer("/agents/defaults/workspace")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            timezone: config
+                .pointer("/manager/timezone")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .or_else(|| Some("Asia/Shanghai".to_string())),
+            time_format: config
+                .pointer("/manager/time_format")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            skip_bootstrap: config
+                .pointer("/agents/defaults/skipBootstrap")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            bootstrap_max_chars: config
+                .pointer("/agents/defaults/bootstrapMaxChars")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+        };
+
+        // Gateway settings
+        let gateway = GatewaySettings {
+            port: config
+                .pointer("/gateway/port")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u16)
+                .unwrap_or(3000),
+            log_level: config
+                .pointer("/manager/log_level")
+                .and_then(|v| v.as_str())
+                .or_else(|| config.pointer("/gateway/logLevel").and_then(|v| v.as_str()))
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "info".to_string()),
+        };
+
+        // Subagent defaults
+        let subagent_defaults = SubagentDefaultsSettings {
+            max_spawn_depth: config
+                .pointer("/agents/defaults/subagents/maxSpawnDepth")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            max_children_per_agent: config
+                .pointer("/agents/defaults/subagents/maxChildrenPerAgent")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            max_concurrent: config
+                .pointer("/agents/defaults/subagents/maxConcurrent")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32),
+            attachments_enabled: config
+                .pointer("/tools/sessions_spawn/attachments/enabled")
+                .and_then(|v| v.as_bool()),
+            attachments_max_total_bytes: config
+                .pointer("/tools/sessions_spawn/attachments/maxTotalBytes")
+                .and_then(|v| v.as_u64()),
+        };
+
+        // Tools profile
+        let tools_profile = config
+            .pointer("/tools/profile")
+            .and_then(|v| v.as_str())
+            .unwrap_or("messaging")
+            .to_string();
+
+        // PDF settings
+        let pdf = PdfSettings {
+            max_pages: config.get("pdfMaxPages").and_then(|v| v.as_u64()),
+            max_bytes_mb: config.get("pdfMaxBytesMb").and_then(|v| v.as_f64()),
+        };
+
+        // Memory settings
+        let memory = MemorySettings {
+            provider: config
+                .pointer("/memorySearch/provider")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+        };
+
+        // Language setting
+        let language = config
+            .pointer("/meta/language")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        AllSettings {
+            browser,
+            web,
+            compaction,
+            workspace,
+            gateway,
+            subagent_defaults,
+            tools_profile,
+            pdf,
+            memory,
+            language,
+        }
+    }
+}

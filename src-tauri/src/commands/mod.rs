@@ -7,6 +7,8 @@ pub mod service;
 pub mod skills;
 
 #[cfg(test)]
+mod config_batch_tests;
+#[cfg(test)]
 mod installer_tests;
 #[cfg(test)]
 mod service_tests;

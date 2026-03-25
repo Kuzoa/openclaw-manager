@@ -1,6 +1,6 @@
 use crate::models::{
-    AIConfigOverview, ChannelConfig, ConfiguredModel, ConfiguredProvider, MCPConfig, ModelConfig,
-    OfficialProvider, SuggestedModel,
+    AIConfigOverview, AllSettings, ChannelConfig, ConfiguredModel, ConfiguredProvider, MCPConfig,
+    ModelConfig, OfficialProvider, SuggestedModel,
 };
 use crate::utils::{file, log_sanitizer, platform, shell};
 use log::{debug, error, info, warn};
@@ -22,6 +22,18 @@ fn load_openclaw_config() -> Result<Value, String> {
 
     // Strip UTF-8 BOM if present (Windows editors sometimes add this)
     let content = content.strip_prefix('\u{FEFF}').unwrap_or(&content);
+
+    // Handle empty content - return default empty object
+    if content.trim().is_empty() {
+        warn!("[Config] Configuration file is empty, returning default");
+        return Ok(json!({}));
+    }
+
+    // Handle null literal
+    if content.trim() == "null" {
+        warn!("[Config] Configuration file contains null, returning default");
+        return Ok(json!({}));
+    }
 
     serde_json::from_str(content).map_err(|e| format!("Failed to parse configuration file: {}", e))
 }
@@ -3416,6 +3428,44 @@ pub async fn save_agent(agent: AgentInfo) -> Result<String, String> {
     Ok(format!("Agent '{}' saved", agent.id))
 }
 
+/// Get global subagent defaults
+#[command]
+pub async fn get_subagent_defaults() -> Result<SubagentDefaults, String> {
+    info!("[Agents] Getting subagent defaults...");
+    let config = load_openclaw_config()?;
+
+    let max_spawn_depth = config
+        .pointer("/agents/defaults/subagents/maxSpawnDepth")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32);
+
+    let max_children_per_agent = config
+        .pointer("/agents/defaults/subagents/maxChildrenPerAgent")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32);
+
+    let max_concurrent = config
+        .pointer("/agents/defaults/subagents/maxConcurrent")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32);
+
+    let attachments_enabled = config
+        .pointer("/tools/sessions_spawn/attachments/enabled")
+        .and_then(|v| v.as_bool());
+
+    let attachments_max_total_bytes = config
+        .pointer("/tools/sessions_spawn/attachments/maxTotalBytes")
+        .and_then(|v| v.as_u64());
+
+    Ok(SubagentDefaults {
+        max_spawn_depth,
+        max_children_per_agent,
+        max_concurrent,
+        attachments_enabled,
+        attachments_max_total_bytes,
+    })
+}
+
 /// Save global subagent defaults
 #[command]
 pub async fn save_subagent_defaults(defaults: SubagentDefaults) -> Result<String, String> {
@@ -4457,4 +4507,248 @@ pub async fn import_config(path: String) -> Result<String, String> {
     save_openclaw_config(&new_config)?;
 
     Ok("Configuration imported successfully".to_string())
+}
+
+// ============ Unified Settings API ============
+
+/// Get all settings for the Settings page in a single atomic operation
+#[command]
+pub async fn get_all_settings() -> Result<AllSettings, String> {
+    info!("[Settings] Getting all settings...");
+    let config = load_openclaw_config()?;
+    Ok(AllSettings::from(config))
+}
+
+/// Save all settings from the Settings page in a single atomic operation
+/// This eliminates race conditions by doing a single read-modify-write cycle
+#[command]
+pub async fn save_all_settings(settings: AllSettings) -> Result<String, String> {
+    info!("[Settings] Saving all settings...");
+    let mut config = load_openclaw_config()?;
+
+    // Browser settings -> meta.gui.browser
+    if config.get("meta").is_none() {
+        config["meta"] = json!({});
+    }
+    if config["meta"].get("gui").is_none() {
+        config["meta"]["gui"] = json!({});
+    }
+    let mut browser_config = json!({
+        "enabled": settings.browser.enabled
+    });
+    if let Some(c) = &settings.browser.color {
+        if !c.is_empty() {
+            browser_config["color"] = json!(c);
+        }
+    }
+    config["meta"]["gui"]["browser"] = browser_config;
+
+    // Web settings -> web.braveApiKey
+    if config.get("web").is_none() {
+        config["web"] = json!({});
+    }
+    match &settings.web.brave_api_key {
+        Some(key) if !key.is_empty() => {
+            config["web"]["braveApiKey"] = json!(key);
+        }
+        _ => {
+            if let Some(web) = config.get_mut("web").and_then(|v| v.as_object_mut()) {
+                web.remove("braveApiKey");
+            }
+        }
+    }
+
+    // Compaction settings -> agents.defaults.compaction & contextPruning
+    if config.get("agents").is_none() {
+        config["agents"] = json!({});
+    }
+    if config["agents"].get("defaults").is_none() {
+        config["agents"]["defaults"] = json!({});
+    }
+
+    if settings.compaction.enabled {
+        let mut comp = json!({});
+        if let Some(t) = settings.compaction.threshold {
+            comp["threshold"] = json!(t);
+        }
+        config["agents"]["defaults"]["compaction"] = comp;
+    } else if let Some(defaults) = config["agents"]["defaults"].as_object_mut() {
+        defaults.remove("compaction");
+    }
+
+    if settings.compaction.context_pruning {
+        let mut pruning = json!(true);
+        if let Some(max) = settings.compaction.max_context_messages {
+            pruning = json!({ "maxMessages": max });
+        }
+        config["agents"]["defaults"]["contextPruning"] = pruning;
+    } else if let Some(defaults) = config["agents"]["defaults"].as_object_mut() {
+        defaults.remove("contextPruning");
+    }
+
+    // Workspace settings -> agents.defaults & manager
+    if let Some(defaults) = config
+        .pointer_mut("/agents/defaults")
+        .and_then(|v| v.as_object_mut())
+    {
+        match &settings.workspace.workspace {
+            Some(w) if !w.is_empty() => {
+                defaults.insert("workspace".into(), json!(w));
+            }
+            _ => {
+                defaults.remove("workspace");
+            }
+        }
+        if settings.workspace.skip_bootstrap {
+            defaults.insert("skipBootstrap".into(), json!(true));
+        } else {
+            defaults.remove("skipBootstrap");
+        }
+        match settings.workspace.bootstrap_max_chars {
+            Some(max) => {
+                defaults.insert("bootstrapMaxChars".into(), json!(max));
+            }
+            None => {
+                defaults.remove("bootstrapMaxChars");
+            }
+        }
+        defaults.remove("timezone");
+        defaults.remove("timeFormat");
+    }
+
+    if config.get("manager").is_none() {
+        config["manager"] = json!({});
+    }
+    if let Some(manager) = config.get_mut("manager").and_then(|v| v.as_object_mut()) {
+        match &settings.workspace.timezone {
+            Some(tz) if !tz.is_empty() => {
+                manager.insert("timezone".into(), json!(tz));
+            }
+            _ => {
+                manager.remove("timezone");
+            }
+        }
+        match &settings.workspace.time_format {
+            Some(tf) if !tf.is_empty() => {
+                manager.insert("time_format".into(), json!(tf));
+            }
+            _ => {
+                manager.remove("time_format");
+            }
+        }
+    }
+
+    // Gateway settings -> gateway.port & manager.log_level
+    if config.get("gateway").is_none() {
+        config["gateway"] = json!({});
+    }
+    if let Some(gateway) = config.get_mut("gateway").and_then(|v| v.as_object_mut()) {
+        gateway.insert("port".to_string(), json!(settings.gateway.port));
+        gateway.remove("logLevel");
+        gateway.remove("log_level");
+    }
+
+    if let Some(manager) = config.get_mut("manager").and_then(|v| v.as_object_mut()) {
+        manager.insert("log_level".to_string(), json!(settings.gateway.log_level));
+    }
+
+    // Subagent defaults -> agents.defaults.subagents & tools.sessions_spawn.attachments
+    let mut sub_obj = json!({});
+    if let Some(depth) = settings.subagent_defaults.max_spawn_depth {
+        sub_obj["maxSpawnDepth"] = json!(depth);
+    }
+    if let Some(children) = settings.subagent_defaults.max_children_per_agent {
+        sub_obj["maxChildrenPerAgent"] = json!(children);
+    }
+    if let Some(concurrent) = settings.subagent_defaults.max_concurrent {
+        sub_obj["maxConcurrent"] = json!(concurrent);
+    }
+    config["agents"]["defaults"]["subagents"] = sub_obj;
+
+    if settings
+        .subagent_defaults
+        .attachments_enabled
+        .is_some()
+        || settings
+            .subagent_defaults
+            .attachments_max_total_bytes
+            .is_some()
+    {
+        if config.get("tools").is_none() {
+            config["tools"] = json!({});
+        }
+        if config["tools"].get("sessions_spawn").is_none() {
+            config["tools"]["sessions_spawn"] = json!({});
+        }
+        if config["tools"]["sessions_spawn"]
+            .get("attachments")
+            .is_none()
+        {
+            config["tools"]["sessions_spawn"]["attachments"] = json!({});
+        }
+
+        if let Some(enabled) = settings.subagent_defaults.attachments_enabled {
+            config["tools"]["sessions_spawn"]["attachments"]["enabled"] = json!(enabled);
+        }
+        if let Some(max_bytes) = settings.subagent_defaults.attachments_max_total_bytes {
+            config["tools"]["sessions_spawn"]["attachments"]["maxTotalBytes"] = json!(max_bytes);
+        }
+    }
+
+    // Tools profile -> tools.profile
+    if config.get("tools").is_none() {
+        config["tools"] = json!({});
+    }
+    config["tools"]["profile"] = json!(settings.tools_profile);
+
+    // PDF settings -> pdfMaxPages, pdfMaxBytesMb
+    if let Some(pages) = settings.pdf.max_pages {
+        config["pdfMaxPages"] = json!(pages);
+    } else if let Some(obj) = config.as_object_mut() {
+        obj.remove("pdfMaxPages");
+    }
+    if let Some(mb) = settings.pdf.max_bytes_mb {
+        config["pdfMaxBytesMb"] = json!(mb);
+    } else if let Some(obj) = config.as_object_mut() {
+        obj.remove("pdfMaxBytesMb");
+    }
+
+    // Memory settings -> memorySearch.provider
+    if let Some(provider) = &settings.memory.provider {
+        if !provider.is_empty() {
+            if config.get("memorySearch").is_none() {
+                config["memorySearch"] = json!({});
+            }
+            config["memorySearch"]["provider"] = json!(provider);
+        }
+    } else if let Some(obj) = config.as_object_mut() {
+        obj.remove("memorySearch");
+    }
+
+    // Language setting -> meta.language
+    if let Some(lang) = &settings.language {
+        if !lang.is_empty() {
+            config["meta"]["language"] = json!(lang);
+        }
+    } else if let Some(meta) = config.get_mut("meta").and_then(|v| v.as_object_mut()) {
+        meta.remove("language");
+    }
+
+    // Use atomic write: write to temp file first, then rename
+    let config_path = platform::get_config_file_path();
+    let temp_path = format!("{}.tmp", config_path);
+
+    let content = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("Failed to serialize configuration: {}", e))?;
+
+    // Write to temp file
+    file::write_file(&temp_path, &content)
+        .map_err(|e| format!("Failed to write temp file: {}", e))?;
+
+    // Atomic rename (works on both Windows and Unix)
+    std::fs::rename(&temp_path, &config_path)
+        .map_err(|e| format!("Failed to rename config file: {}", e))?;
+
+    info!("[Settings] All settings saved successfully");
+    Ok("All settings saved".to_string())
 }

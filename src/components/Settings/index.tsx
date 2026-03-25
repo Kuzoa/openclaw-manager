@@ -21,7 +21,7 @@ import {
   Languages
 } from 'lucide-react';
 import { appLogger } from '../../lib/logger';
-import { isTauri } from '../../lib/tauri';
+import { isTauri, api, AllSettings } from '../../lib/tauri';
 import { useTranslation } from 'react-i18next';
 
 interface InstallResult {
@@ -34,6 +34,7 @@ interface SettingsProps {
   onEnvironmentChange?: () => void;
 }
 
+// Local interfaces for component state (keep for compatibility)
 interface BrowserConfig {
   enabled: boolean;
   color: string | null;
@@ -114,36 +115,34 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
   const [toolsProfile, setToolsProfile] = useState<string>('messaging');
   const [pdfConfig, setPdfConfig] = useState<PdfConfig>({ max_pages: null, max_bytes_mb: null });
   const [memoryConfig, setMemoryConfig] = useState<MemoryConfig>({ provider: null });
+  const [language, setLanguage] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>('...');
 
   const [validating, setValidating] = useState(false);
   const [validateStatus, setValidateStatus] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Load initial data
+  // Load initial data using unified getAllSettings API
   useEffect(() => {
     const loadConfig = async () => {
       setLoading(true);
       try {
-        const [br, web, comp, ws, gw, sub, profile, pdf, mem] = await Promise.all([
-          invoke<BrowserConfig>('get_browser_config'),
-          invoke<WebConfig>('get_web_config'),
-          invoke<CompactionConfig>('get_compaction_config'),
-          invoke<WorkspaceConfig>('get_workspace_config'),
-          invoke<GatewayConfig>('get_gateway_config'),
-          invoke<SubagentDefaults>('get_subagent_defaults'),
-          invoke<string>('get_tools_profile'),
-          invoke<PdfConfig>('get_pdf_config'),
-          invoke<MemoryConfig>('get_memory_config'),
-        ]);
-        setBrowser(br);
-        setWebConfig(web);
-        setCompaction(comp);
-        setWorkspace(ws);
-        setGateway(gw);
-        setSubagentDefaults(sub);
-        setToolsProfile(profile);
-        setPdfConfig(pdf);
-        setMemoryConfig(mem);
+        const settings = await api.getAllSettings();
+        
+        setBrowser(settings.browser);
+        setWebConfig(settings.web);
+        setCompaction(settings.compaction);
+        setWorkspace(settings.workspace);
+        setGateway(settings.gateway);
+        setSubagentDefaults(settings.subagent_defaults);
+        setToolsProfile(settings.tools_profile);
+        setPdfConfig(settings.pdf);
+        setMemoryConfig(settings.memory);
+        setLanguage(settings.language);
+
+        // Restore language setting
+        if (settings.language) {
+          i18n.changeLanguage(settings.language);
+        }
 
         if (isTauri()) {
           const { getVersion } = await import('@tauri-apps/api/app');
@@ -156,34 +155,27 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
       }
     };
     loadConfig();
-  }, []);
+  }, [i18n]);
 
   const handleSave = async () => {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      await Promise.all([
-        invoke('save_browser_config', { enabled: browser.enabled, color: browser.color }),
-        invoke('save_web_config', { braveApiKey: webConfig.brave_api_key }),
-        invoke('save_compaction_config', {
-          enabled: compaction.enabled,
-          threshold: compaction.threshold,
-          contextPruning: compaction.context_pruning,
-          maxContextMessages: compaction.max_context_messages
-        }),
-        invoke('save_workspace_config', {
-          workspace: workspace.workspace,
-          timezone: workspace.timezone,
-          timeFormat: workspace.time_format,
-          skipBootstrap: workspace.skip_bootstrap,
-          bootstrapMaxChars: workspace.bootstrap_max_chars
-        }),
-        invoke('save_gateway_config', { port: gateway.port, logLevel: gateway.log_level }),
-        invoke('save_subagent_defaults', { defaults: subagentDefaults }),
-        invoke('save_tools_profile', { profile: toolsProfile }),
-        invoke('save_pdf_config', { pdfConfig }),
-        invoke('save_memory_config', { memoryConfig }),
-      ]);
+      // Build AllSettings object from component state
+      const settings: AllSettings = {
+        browser,
+        web: webConfig,
+        compaction,
+        workspace,
+        gateway,
+        subagent_defaults: subagentDefaults,
+        tools_profile: toolsProfile,
+        pdf: pdfConfig,
+        memory: memoryConfig,
+        language,
+      };
+
+      await api.saveAllSettings(settings);
 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
@@ -343,9 +335,30 @@ export function Settings({ onEnvironmentChange }: SettingsProps) {
     }
   };
 
-  // Language change handler
-  const handleLanguageChange = (lang: string) => {
+  // Language change handler - saves immediately
+  const handleLanguageChange = async (lang: string) => {
     i18n.changeLanguage(lang);
+    setLanguage(lang);
+    
+    // Save language setting immediately
+    try {
+      const settings: AllSettings = {
+        browser,
+        web: webConfig,
+        compaction,
+        workspace,
+        gateway,
+        subagent_defaults: subagentDefaults,
+        tools_profile: toolsProfile,
+        pdf: pdfConfig,
+        memory: memoryConfig,
+        language: lang,
+      };
+      await api.saveAllSettings(settings);
+    } catch (e) {
+      appLogger.error('Failed to save language setting', e);
+      // Don't show error to user - language change succeeded in UI
+    }
   };
 
   if (loading) {
