@@ -20,6 +20,23 @@ export interface DetectionStep {
 }
 
 /**
+ * Environment check progress event payload
+ * Emitted by backend during check_environment command
+ */
+export interface CheckProgress {
+  /** The step that just completed (e.g., "nodejs", "git", "openclaw", "gateway") */
+  completed_step: string;
+  /** Result of the check: "found" or "not_found" */
+  result: 'found' | 'not_found' | 'error' | 'skipped';
+  /** Number of completed checks */
+  completed_count: number;
+  /** Total number of checks */
+  total_count: number;
+  /** Optional message (e.g., version number) */
+  message?: string;
+}
+
+/**
  * Environment status returned by the backend check_environment command
  * 
  * This is the unified type definition used across the application.

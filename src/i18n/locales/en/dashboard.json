@@ -32,6 +32,9 @@
     "install": "Install",
     "download": "Download",
     "installFailed": "Failed to install {{name}}",
+    "checking": "Checking...",
+    "checkingEnvironment": "Checking system environment",
+    "checkingStep": "Checking {{step}}...",
     "requirements": {
       "nodejs": {
         "name": "Node.js",

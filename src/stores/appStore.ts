@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import type { ServiceStatus, SystemInfo } from '../lib/tauri';
-import type { EnvironmentStatus, DetectionStep } from '../types';
+import type { EnvironmentStatus, DetectionStep, CheckProgress } from '../types';
 import { setupLogger } from '../lib/logger';
+import { isTauri } from '../lib/tauri';
 import i18n from '../i18n';
 
 /**
@@ -82,6 +84,14 @@ interface AppState {
   checkEnvironment: () => Promise<void>;
   refreshEnvironment: () => Promise<void>;
 
+  // Check progress state
+  /** Check progress percentage (0-100) */
+  checkProgress: number;
+  /** The step that just completed (for UI display) */
+  checkCompletedStep: string | null;
+  setupProgressListener: () => Promise<void>;
+  cleanupProgressListener: () => void;
+
   // UI state
   loading: boolean;
   setLoading: (loading: boolean) => void;
@@ -102,6 +112,9 @@ interface Notification {
 // Store pending promise to prevent concurrent checks
 let pendingEnvironmentCheck: Promise<void> | null = null;
 
+// Progress listener reference (singleton pattern for React Strict Mode compatibility)
+let progressListenerRef: UnlistenFn | null = null;
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Service status
   serviceStatus: null,
@@ -116,6 +129,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   isCheckingEnvironment: false,
   environmentError: null,
 
+  // Check progress state
+  checkProgress: 0,
+  checkCompletedStep: null,
+
   checkEnvironment: async () => {
     // If already checking, return the pending promise to prevent duplicate calls
     if (get().isCheckingEnvironment && pendingEnvironmentCheck) {
@@ -127,18 +144,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    set({ isCheckingEnvironment: true, environmentError: null });
+    // Reset progress state at the start
+    set({ isCheckingEnvironment: true, environmentError: null, checkProgress: 0, checkCompletedStep: null });
 
     pendingEnvironmentCheck = (async () => {
       try {
         const status = await invoke<EnvironmentStatus>('check_environment');
         // Log detection steps
         logDetectionSteps(status.detection_steps || [], status.openclaw_installed, status.openclaw_version);
-        set({ environment: status, isCheckingEnvironment: false });
+        set({ environment: status, isCheckingEnvironment: false, checkProgress: 0, checkCompletedStep: null });
       } catch (error) {
         set({
           environmentError: `Failed to check environment: ${error}`,
           isCheckingEnvironment: false,
+          checkProgress: 0,
+          checkCompletedStep: null,
         });
       } finally {
         pendingEnvironmentCheck = null;
@@ -154,7 +174,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       return pendingEnvironmentCheck;
     }
 
-    set({ isCheckingEnvironment: true, environmentError: null });
+    // Reset progress state at the start
+    set({ isCheckingEnvironment: true, environmentError: null, checkProgress: 0, checkCompletedStep: null });
 
     pendingEnvironmentCheck = (async () => {
       try {
@@ -163,11 +184,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         const status = await invoke<EnvironmentStatus>('check_environment');
         // Log detection steps
         logDetectionSteps(status.detection_steps || [], status.openclaw_installed, status.openclaw_version);
-        set({ environment: status, isCheckingEnvironment: false });
+        set({ environment: status, isCheckingEnvironment: false, checkProgress: 0, checkCompletedStep: null });
       } catch (error) {
         set({
           environmentError: `Failed to refresh environment: ${error}`,
           isCheckingEnvironment: false,
+          checkProgress: 0,
+          checkCompletedStep: null,
         });
       } finally {
         pendingEnvironmentCheck = null;
@@ -175,6 +198,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     })();
 
     return pendingEnvironmentCheck;
+  },
+
+  setupProgressListener: async () => {
+    // Singleton pattern: prevent duplicate registration
+    if (progressListenerRef) return;
+
+    // Guard: Only register listener in Tauri environment
+    if (!isTauri()) return;
+
+    progressListenerRef = await listen<CheckProgress>('env-check-progress', (event) => {
+      const { completed_count, total_count, completed_step } = event.payload;
+      set({
+        checkProgress: Math.round((completed_count / total_count) * 100),
+        checkCompletedStep: completed_step,
+      });
+    });
+  },
+
+  cleanupProgressListener: () => {
+    if (progressListenerRef) {
+      progressListenerRef();
+      progressListenerRef = null;
+      set({ checkProgress: 0, checkCompletedStep: null });
+    }
   },
 
   // UI state

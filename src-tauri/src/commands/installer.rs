@@ -2,7 +2,24 @@ use crate::models::DetectionStep;
 use crate::utils::{log_sanitizer, platform, shell};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
-use tauri::command;
+use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::Arc;
+use tauri::{command, AppHandle, Emitter};
+
+/// Environment check progress event (emitted during check_environment)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CheckProgress {
+    /// The step that just completed
+    pub completed_step: String,
+    /// Result of the check: "found" or "not_found"
+    pub result: String,
+    /// Number of completed checks
+    pub completed_count: u8,
+    /// Total number of checks
+    pub total_count: u8,
+    /// Optional message (e.g., version number)
+    pub message: Option<String>,
+}
 
 /// Environment check result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,30 +69,82 @@ pub struct InstallResult {
     pub error: Option<String>,
 }
 
-/// Check environment status
+/// Check environment status with progress events
 #[command]
-pub async fn check_environment() -> Result<EnvironmentStatus, String> {
+pub async fn check_environment(app: AppHandle) -> Result<EnvironmentStatus, String> {
     info!("[Environment Check] Starting system environment check...");
 
     let os = platform::get_os();
     info!("[Environment Check] Operating system: {}", os);
 
+    // Pre-check OpenClaw to determine total count (real-time check, not cache)
+    // This ensures progress accuracy even after cache invalidation
+    let openclaw_precheck = get_openclaw_version().is_some();
+    let total: u8 = if openclaw_precheck { 4 } else { 3 };
+    info!(
+        "[Environment Check] Total items to check: {} (OpenClaw precheck: {})",
+        total, openclaw_precheck
+    );
+
+    // Create progress counter and emit closure
+    let completed = Arc::new(AtomicU8::new(0));
+    let total_for_closure = total;
+    let app_for_emit = app.clone();
+    let completed_for_emit = completed.clone();
+    let emit_complete = |step: &str, result: &str, message: Option<String>| {
+        let count = completed_for_emit.fetch_add(1, Ordering::SeqCst) + 1;
+        let _ = app_for_emit.emit(
+            "env-check-progress",
+            CheckProgress {
+                completed_step: step.to_string(),
+                result: result.to_string(),
+                completed_count: count,
+                total_count: total_for_closure,
+                message,
+            },
+        );
+    };
+
     // Use EnvironmentCache for lazy-loaded, cached environment data
     use crate::utils::cache::ENVIRONMENT_CACHE;
 
-    // Run expensive checks concurrently using cache
+    // Run expensive checks concurrently using cache, emitting progress events
     info!("[Environment Check] Checking Node.js, Git, and OpenClaw concurrently (using cache)...");
     let (node_res, git_res, openclaw_res, is_secure_res, detection_steps_res) = tokio::join!(
-        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_node_version()),
-        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_git_version()),
-        tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_openclaw_version()),
+        async {
+            let version = ENVIRONMENT_CACHE.get_node_version();
+            emit_complete(
+                "nodejs",
+                if version.is_some() { "found" } else { "not_found" },
+                version.clone(),
+            );
+            version
+        },
+        async {
+            let version = ENVIRONMENT_CACHE.get_git_version();
+            emit_complete(
+                "git",
+                if version.is_some() { "found" } else { "not_found" },
+                version.clone(),
+            );
+            version
+        },
+        async {
+            let version = ENVIRONMENT_CACHE.get_openclaw_version();
+            emit_complete(
+                "openclaw",
+                if version.is_some() { "found" } else { "not_found" },
+                version.clone(),
+            );
+            version
+        },
         tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_is_secure()),
         tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_detection_steps())
     );
 
-    let node_version = node_res.unwrap_or(None);
-    let git_version = git_res.unwrap_or(None);
-    let openclaw_version = openclaw_res.unwrap_or(None);
+    let node_version = node_res;
+    let git_version = git_res;
+    let openclaw_version = openclaw_res;
     let is_secure = is_secure_res.unwrap_or(None).unwrap_or(false);
     let detection_steps = detection_steps_res.unwrap_or_default();
 
@@ -98,14 +167,16 @@ pub async fn check_environment() -> Result<EnvironmentStatus, String> {
         openclaw_installed, openclaw_version, is_secure
     );
 
-    // Check Gateway Service (only if OpenClaw is installed)
+    // Check Gateway Service (only if OpenClaw is installed and total=4)
     // Use cached gateway_installed to avoid slow openclaw gateway status command
-    let gateway_service_installed = if openclaw_installed {
+    let gateway_service_installed = if openclaw_precheck {
         info!("[Environment Check] Checking Gateway Service (using cache)...");
-        let installed = tokio::task::spawn_blocking(|| ENVIRONMENT_CACHE.get_gateway_installed())
-            .await
-            .unwrap_or(None)
-            .unwrap_or(false);
+        let installed = ENVIRONMENT_CACHE.get_gateway_installed().unwrap_or(false);
+        emit_complete(
+            "gateway",
+            if installed { "found" } else { "not_found" },
+            None,
+        );
         info!(
             "[Environment Check] Gateway Service: installed={}",
             installed

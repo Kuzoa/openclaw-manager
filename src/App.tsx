@@ -84,6 +84,8 @@ function App() {
   const serviceStatus = useAppStore((state) => state.serviceStatus);
   const checkEnvironment = useAppStore((state) => state.checkEnvironment);
   const refreshEnvironment = useAppStore((state) => state.refreshEnvironment);
+  const setupProgressListener = useAppStore((state) => state.setupProgressListener);
+  const cleanupProgressListener = useAppStore((state) => state.cleanupProgressListener);
   const notifications = useAppStore((state) => state.notifications);
   const removeNotification = useAppStore((state) => state.removeNotification);
 
@@ -210,7 +212,15 @@ function App() {
   useEffect(() => {
     appLogger.info('🦞 App component mounted');
     checkEnvironment();
-  }, [checkEnvironment]);
+
+    // Setup progress listener for environment check
+    setupProgressListener();
+
+    // Cleanup on unmount
+    return () => {
+      cleanupProgressListener();
+    };
+  }, [checkEnvironment, setupProgressListener, cleanupProgressListener]);
 
   // Check for updates after environment check completes (non-blocking)
   useEffect(() => {

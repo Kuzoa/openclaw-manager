@@ -44,9 +44,19 @@ export function SystemInfo() {
   const isCheckingEnvironment = useAppStore((state) => state.isCheckingEnvironment);
   const environmentError = useAppStore((state) => state.environmentError);
   const refreshEnvironment = useAppStore((state) => state.refreshEnvironment);
+  const checkProgress = useAppStore((state) => state.checkProgress);
+  const checkCompletedStep = useAppStore((state) => state.checkCompletedStep);
   
   const [installing, setInstalling] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Step name mapping for display
+  const stepNameMap: Record<string, string> = {
+    nodejs: 'Node.js',
+    git: 'Git',
+    openclaw: 'OpenClaw',
+    gateway: 'Gateway',
+  };
 
   const handleRefresh = async () => {
     await refreshEnvironment();
@@ -191,16 +201,27 @@ export function SystemInfo() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${allReady ? 'bg-green-500/20' : 'bg-amber-500/20'
-            }`}>
-            <Shield size={18} className={allReady ? 'text-green-400' : 'text-amber-400'} />
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            isCheckingEnvironment
+              ? 'bg-dark-500/50'
+              : allReady
+                ? 'bg-green-500/20'
+                : 'bg-amber-500/20'
+          }`}>
+            {isCheckingEnvironment ? (
+              <Loader2 size={18} className="text-gray-400 animate-spin" />
+            ) : (
+              <Shield size={18} className={allReady ? 'text-green-400' : 'text-amber-400'} />
+            )}
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">{t('systemInfo.title')}</h3>
             <p className="text-xs text-gray-500">
-              {allReady
-                ? t('systemInfo.allReady')
-                : t('systemInfo.progress', { installed: installedCount, total: totalCount })}
+              {isCheckingEnvironment && checkCompletedStep
+                ? t('systemInfo.checkingStep', { step: stepNameMap[checkCompletedStep] || checkCompletedStep })
+                : allReady
+                  ? t('systemInfo.allReady')
+                  : t('systemInfo.progress', { installed: installedCount, total: totalCount })}
             </p>
           </div>
         </div>
@@ -218,13 +239,16 @@ export function SystemInfo() {
       <div className="mb-5">
         <div className="w-full h-1.5 bg-dark-600 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${allReady
-              ? 'bg-green-500'
-              : progressPercent > 50
-                ? 'bg-amber-500'
-                : 'bg-red-500'
-              }`}
-            style={{ width: `${progressPercent}%` }}
+            className={`h-full rounded-full transition-all duration-500 ${
+              isCheckingEnvironment
+                ? 'bg-claw-500'
+                : allReady
+                  ? 'bg-green-500'
+                  : progressPercent > 50
+                    ? 'bg-amber-500'
+                    : 'bg-red-500'
+            }`}
+            style={{ width: `${isCheckingEnvironment ? checkProgress : progressPercent}%` }}
           />
         </div>
       </div>
@@ -234,15 +258,32 @@ export function SystemInfo() {
         {requirements.map((req) => (
           <div
             key={req.id}
-            className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${req.installed
-              ? 'bg-green-500/5 border-green-500/10'
-              : 'bg-red-500/5 border-red-500/15'
-              }`}
+            className={`relative flex items-center justify-between p-3 rounded-xl border transition-colors ${
+              isCheckingEnvironment
+                ? 'bg-dark-600/50 border-dark-500'
+                : req.installed
+                  ? 'bg-green-500/5 border-green-500/10'
+                  : 'bg-red-500/5 border-red-500/15'
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${req.installed ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                }`}>
-                {req.installed ? <CheckCircle2 size={16} /> : req.icon}
+            {/* Shimmer animation overlay */}
+            {isCheckingEnvironment && <div className="shimmer-effect" />}
+            
+            <div className="flex items-center gap-3 relative z-10">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                isCheckingEnvironment
+                  ? 'bg-dark-500/50'
+                  : req.installed
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-red-500/20 text-red-400'
+              }`}>
+                {isCheckingEnvironment ? (
+                  <Loader2 size={16} className="animate-spin text-gray-400" />
+                ) : req.installed ? (
+                  <CheckCircle2 size={16} />
+                ) : (
+                  req.icon
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -252,13 +293,20 @@ export function SystemInfo() {
                   )}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {req.versionNote || req.description}
+                  {isCheckingEnvironment
+                    ? t('systemInfo.checking')
+                    : req.versionNote || req.description}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {req.installed ? (
+            <div className="flex items-center gap-2 relative z-10">
+              {isCheckingEnvironment ? (
+                <span className="flex items-center gap-1.5 text-xs text-gray-400 font-medium px-2 py-1 bg-dark-500/50 rounded-md">
+                  <Loader2 size={12} className="animate-spin" />
+                  {t('systemInfo.checking')}
+                </span>
+              ) : req.installed ? (
                 <span className="text-xs text-green-400 font-medium px-2 py-1 bg-green-500/10 rounded-md">
                   {t('systemInfo.ready')}
                 </span>
