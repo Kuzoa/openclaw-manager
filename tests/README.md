@@ -13,6 +13,9 @@
 │                                                                         │
 │  前端测试（分离式，位于 tests/frontend/）                                │
 │  ├── 单元测试：tests/frontend/unit/*.test.ts                           │
+│  │   └── 位置：tests/frontend/unit/progress.test.ts                    │
+│  │              tests/frontend/unit/store.test.ts                      │
+│  │              tests/frontend/unit/logger.test.ts                     │
 │  └── 框架：Vitest + jsdom + @testing-library/react                     │
 │                                                                         │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -66,6 +69,7 @@ tests/
 │       ├── detection.test.ts    # 检测步骤测试
 │       ├── i18n.test.ts         # 国际化测试
 │       ├── logger.test.ts       # Logger 模块测试
+│       ├── progress.test.ts     # 进度监听器测试
 │       └── store.test.ts        # Zustand Store 测试
 │
 └── README.md                    # 本文档
@@ -73,6 +77,7 @@ tests/
 src-tauri/
 ├── src/                         # 源码 + 内嵌单元测试
 │   ├── commands/
+│   │   ├── installer_tests.rs   # 安装器单元测试
 │   │   └── service_tests.rs     # 服务命令单元测试
 │   ├── models/
 │   │   └── detection_tests.rs   # 检测模型单元测试
@@ -85,6 +90,7 @@ src-tauri/
     ├── cache_integration_tests.rs  # 缓存集成测试
     ├── config_tests.rs             # 配置相关测试
     ├── detection_tests.rs          # 检测步骤集成测试
+    ├── env_check_tests.rs          # 环境检测进度事件测试
     ├── performance_tests.rs        # 性能测试
     ├── README_PERFORMANCE_TESTS.md # 性能测试文档
     └── service_tests.rs            # 服务状态集成测试
@@ -200,6 +206,14 @@ npx vitest --config tests/frontend/vitest.config.ts
 - **setLoading** - 加载状态控制
 - **Notifications** - 通知的增删管理
 
+#### progress.test.ts（11 个测试）
+
+测试 `src/stores/appStore.ts` 进度监听器功能：
+
+- **单例模式** - 防止重复注册监听器
+- **状态重置** - refreshEnvironment/checkEnvironment 开始时重置进度状态
+- **React Strict Mode 兼容性** - 组件卸载/重挂载时监听器正确清理和重新注册
+
 ### 编写新测试
 
 ```typescript
@@ -295,7 +309,8 @@ cargo test test_name
 ```
 src-tauri/src/
 ├── commands/
-│   └── service_tests.rs      # 服务命令测试
+│   ├── service_tests.rs      # 服务命令测试
+│   └── installer_tests.rs    # 安装器单元测试
 ├── models/
 │   └── detection_tests.rs    # 检测模型测试
 └── utils/
@@ -312,6 +327,7 @@ src-tauri/src/
 | `log_sanitizer_tests.rs` | 5 | 敏感信息脱敏 |
 | `service_tests.rs` | 8 | 服务状态缓存、状态变更检测 |
 | `detection_tests.rs` | 10+ | DetectionResult/DetectionStep 序列化 |
+| `installer_tests.rs` | 10 | CheckProgress 序列化、total_count 计算、emit 错误处理 |
 
 #### 集成测试
 
@@ -324,6 +340,7 @@ src-tauri/src/
 | `detection_tests.rs` | 5 | 检测步骤结构、EnvironmentStatus 字段 |
 | `service_tests.rs` | 9 | 服务状态序列化、平台检测、端口检查 |
 | `performance_tests.rs` | 6 | 缓存 I/O 性能、环境检测性能 |
+| `env_check_tests.rs` | 10 | 进度事件序列、total_count 确定、进度计算 |
 
 **性能测试说明**
 
@@ -382,7 +399,7 @@ fn test_with_temp_dir() {
 | 模块 | 测试类型 | 覆盖程度 |
 |------|----------|----------|
 | `src/lib/logger.ts` | 单元 | 完整 |
-| `src/stores/appStore.ts` | 单元 | 部分（状态管理） |
+| `src/stores/appStore.ts` | 单元 | 完整（含进度监听器） |
 | `src/i18n/` | 单元 | 基本 |
 | 缓存类型定义 | 单元 | 完整 |
 | 检测步骤类型 | 单元 | 完整 |
@@ -396,6 +413,7 @@ fn test_with_temp_dir() {
 | `src-tauri/utils/file.rs` | 集成 | 完整 |
 | `src-tauri/utils/platform.rs` | 集成 | 基本 |
 | `src-tauri/commands/service.rs` | 单元 | 完整 |
+| `src-tauri/commands/installer.rs` | 单元+集成 | 完整（CheckProgress） |
 | `src-tauri/models/detection.rs` | 单元 | 完整 |
 | `src-tauri/models/status.rs` | 集成 | 完整 |
 
