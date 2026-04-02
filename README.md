@@ -1,10 +1,12 @@
 # 🦞 OpenClaw Manager
 
+English | **[简体中文](./README_zh.md)**
+
 **One-click installer & management GUI for [OpenClaw](https://github.com/miaoxworld/OpenClawInstaller)** — the open-source AI assistant framework.
 
 Built with **Tauri 2.0 + React 18 + TypeScript + Rust** for native performance on every desktop platform.
 
-![Platform](https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20|%20Linux-blue)
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-orange)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
 ![Rust](https://img.shields.io/badge/Rust-1.70+-red)
@@ -22,6 +24,7 @@ Real-time monitoring and full lifecycle management of the OpenClaw service.
 - **Service Supervisor**: Automatically revives the gateway when it is restarted via Telegram command or recovers from unexpected failures.
 - **Log Viewer**: Structured local application logs. Filter by warnings, errors, and easily export.
 - **Web Control UI**: Direct chat interface with your agents (`http://localhost:{GATEWAY_PORT}`).
+- **Progress Feedback**: Visual progress indicators during environment detection with real-time status updates.
 
 ### 🤖 Comprehensive AI Configuration
 Flexible multi-provider AI connection with seamless **Ollama** integration.
@@ -51,6 +54,10 @@ Never lose an `.openclaw.json` or model setup profile again!
 - Validated GUI configurations directly synced to your `.openclaw.json`.
 - Provide schema validation right from the interface.
 - Import, Export, Backup, and Restore your entire setup locally using JSON.
+
+### 🌐 Localization & Performance
+- **Multi-language Support**: Full internationalization (i18n) with English and Chinese interfaces. Switch languages seamlessly from settings.
+- **Environment Caching**: Persistent cache for environment detection results, reducing redundant checks and improving startup performance.
 
 ### 🧩 MCP Management
 Full [Model Context Protocol](https://modelcontextprotocol.io/) server management with integrated **mcporter** support. Set up simple StdIo local commands or remote SSE hooks dynamically. Changes automatically sink to your local `~/.mcporter/mcporter.json`.
@@ -103,6 +110,7 @@ openclaw-manager/
 | Animation | Framer Motion | Smooth transitions & micro-interactions |
 | Backend | Rust | High-performance system operations |
 | Desktop | Tauri 2.0 | Native cross-platform shell |
+| Testing | Vitest + Cargo test | Frontend & backend unit testing |
 
 ---
 
@@ -138,7 +146,6 @@ Output in `src-tauri/target/release/bundle/`:
 
 | Platform | Formats |
 |----------|---------|
-| macOS | `.dmg`, `.app` |
 | Windows | `.msi`, `.exe` |
 | Linux | `.deb`, `.AppImage` |
 
