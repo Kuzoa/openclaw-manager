@@ -37,7 +37,7 @@ src-tauri/target/
 src-tauri/Cargo.lock
 *.key
 *.key.pub
-.tauri
+.tauri/
 
 # AI Tools
 .adal/

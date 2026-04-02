@@ -67,7 +67,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNCMzI4NzIxQzQ0NEUxNUYKUldSZjRVVEVJWWN5T3pmWXZrakxJVkxjRXBnRm1DQW9WZGYraXVrbStkQXAvNjZOOGRUUG9sRTEK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZFRjNGRTVBREJBODRGNzcKUldSM1Q2amJXdjd6Ymk2eU1hRXpnV1d1OHRYcG41Y0JRSHRCZ2s1aGJmZUJuNG9oN1hjM1o3eDMK",
       "endpoints": [
         "https://github.com/Kuzoa/openclaw-manager/releases/latest/download/latest.json"
       ]
