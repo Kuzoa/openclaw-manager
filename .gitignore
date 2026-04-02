@@ -35,6 +35,9 @@ coverage/
 # Tauri
 src-tauri/target/
 src-tauri/Cargo.lock
+*.key
+*.key.pub
+.tauri
 
 # AI Tools
 .adal/
