@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { act } from '@testing-library/react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -25,7 +25,7 @@ const mockIsTauri = vi.mocked(isTauri);
 
 describe('Progress Listener', () => {
   // Store the original progressListenerRef to reset between tests
-  let mockUnlisten: vi.Mock;
+  let mockUnlisten: Mock;
 
   beforeEach(() => {
     // Reset store to initial state

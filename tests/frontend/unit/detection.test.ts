@@ -236,7 +236,7 @@ describe('logDetectionSteps 日志输出格式', () => {
     ];
 
     setupLogger.info('🔍 开始环境检查...');
-    steps.forEach(step => {
+    steps.forEach(_step => {
       const resultIcon = '✗ 文件不存在';
       setupLogger.info(`结果: ${resultIcon}`);
     });

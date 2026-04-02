@@ -13,7 +13,7 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(global, 'localStorage', {
+Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true,
 });
@@ -22,7 +22,7 @@ Object.defineProperty(global, 'localStorage', {
 localStorageMock.setItem('LOG_LEVEL', 'debug');
 
 // window mock (logger.ts 在 window 上暴露调试接口)
-Object.defineProperty(global, 'window', {
+Object.defineProperty(globalThis, 'window', {
   value: {
     localStorage: localStorageMock,
   },

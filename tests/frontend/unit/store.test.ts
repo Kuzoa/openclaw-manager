@@ -49,7 +49,14 @@ describe('AppStore', () => {
     it('should update service status', () => {
       const { setServiceStatus } = useAppStore.getState();
       
-      const status = { running: true, pid: 1234, version: '1.0.0' };
+      const status = { 
+        running: true, 
+        pid: 1234, 
+        port: 3000,
+        uptime_seconds: 100,
+        memory_mb: 50.5,
+        cpu_percent: 10.2
+      };
       
       act(() => {
         setServiceStatus(status);
@@ -62,7 +69,14 @@ describe('AppStore', () => {
       const { setServiceStatus } = useAppStore.getState();
       
       act(() => {
-        setServiceStatus({ running: true, pid: 1234, version: '1.0.0' });
+        setServiceStatus({ 
+          running: true, 
+          pid: 1234, 
+          port: 3000,
+          uptime_seconds: 100,
+          memory_mb: 50.5,
+          cpu_percent: 10.2
+        });
         setServiceStatus(null);
       });
 
@@ -76,9 +90,12 @@ describe('AppStore', () => {
       
       const info = {
         os: 'Windows',
-        version: '10.0.19045',
+        os_version: '10.0.19045',
         arch: 'x64',
-        hostname: 'test-host',
+        openclaw_installed: true,
+        openclaw_version: '1.0.0',
+        node_version: '18.0.0',
+        config_dir: '/path/to/config',
       };
       
       act(() => {

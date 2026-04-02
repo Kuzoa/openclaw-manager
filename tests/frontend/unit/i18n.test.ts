@@ -124,7 +124,8 @@ describe('i18n Configuration', () => {
     });
 
     it('should return key for missing translations', () => {
-      expect(i18n.t('nonexistent.key')).toBe('nonexistent.key');
+      // Cast to string to bypass strict type checking for missing keys
+      expect(i18n.t('nonexistent.key' as string)).toBe('nonexistent.key');
     });
 
     it('should support interpolation', async () => {
@@ -195,7 +196,7 @@ describe('Translation File Integrity', () => {
     ];
 
     // Check that all namespace files exist by checking the resources
-    requiredNamespaces.forEach(ns => {
+    requiredNamespaces.forEach(_ns => {
       expect(commonEn).toBeDefined();
       expect(commonZh).toBeDefined();
     });
